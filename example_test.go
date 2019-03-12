@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/da440dil/counter"
-	storage "github.com/da440dil/counter/redis"
+	"github.com/da440dil/go-counter"
+	storage "github.com/da440dil/go-counter/redis"
 	"github.com/go-redis/redis"
 )
 

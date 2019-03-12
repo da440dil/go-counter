@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	rs "github.com/da440dil/counter/redis"
+	rs "github.com/da440dil/go-counter/redis"
 	rd "github.com/go-redis/redis"
 	"github.com/stretchr/testify/assert"
 )
