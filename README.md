@@ -60,7 +60,7 @@ func main() {
 }
 
 type Counter struct {
-	counter counter.Counter
+	counter *counter.Counter
 	key     string
 	id      int
 }
@@ -77,3 +77,5 @@ func (c Counter) Count() {
 	}
 }
 ```
+
+Inspired by [redis-lock](https://github.com/bsm/redis-lock) package.
