@@ -55,7 +55,7 @@ func Example() {
 }
 
 type Counter struct {
-	counter counter.Counter
+	counter *counter.Counter
 	key     string
 	id      int
 }

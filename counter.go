@@ -3,15 +3,7 @@ package counter
 
 import "time"
 
-// Counter implements distributed rate limiting.
-type Counter interface {
-	// Count increments key value,
-	// returns -1 if key value less than or equal limit,
-	// returns ttl in milliseconds if key value greater than limit.
-	Count(key string) (int64, error)
-}
-
-// Storage imlements key value storage.
+// Storage implements key value storage.
 type Storage interface {
 	// Incr sets key value and ttl of key if key not exists or increment key value if key exists,
 	// returns -1 if key value less than or equal limit,
@@ -27,12 +19,12 @@ type Params struct {
 }
 
 // NewCounter allocates and returns new Counter.
-func NewCounter(storage Storage, params Params) Counter {
+func NewCounter(storage Storage, params Params) *Counter {
 	var limit uint64 = 1
 	if params.Limit > 1 {
 		limit = params.Limit
 	}
-	return &counter{
+	return &Counter{
 		storage: storage,
 		limit:   limit,
 		ttl:     params.TTL,
@@ -40,13 +32,17 @@ func NewCounter(storage Storage, params Params) Counter {
 	}
 }
 
-type counter struct {
+// Counter implements distributed rate limiting.
+type Counter struct {
 	storage Storage
 	limit   uint64
 	ttl     time.Duration
 	prefix  string
 }
 
-func (c *counter) Count(key string) (int64, error) {
+// Count increments key value,
+// returns -1 if key value less than or equal limit,
+// returns ttl in milliseconds if key value greater than limit.
+func (c *Counter) Count(key string) (int64, error) {
 	return c.storage.Incr(c.prefix+key, c.limit, c.ttl)
 }
