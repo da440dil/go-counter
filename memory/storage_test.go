@@ -9,10 +9,10 @@ import (
 
 func Test(t *testing.T) {
 	const (
-		key          = "key"
-		limit uint64 = 2
-		ttl          = time.Millisecond * 1000
-		ms           = int64(ttl / time.Millisecond)
+		key   = "key"
+		limit = 2
+		ttl   = time.Millisecond * 1000
+		ms    = int64(ttl / time.Millisecond)
 	)
 
 	storage := NewStorage(ttl)
@@ -43,10 +43,10 @@ func Test(t *testing.T) {
 
 func TestTTL(t *testing.T) {
 	const (
-		key          = "key"
-		limit uint64 = 2
-		ttl          = time.Millisecond * 100
-		ms           = int64(ttl / time.Millisecond)
+		key   = "key"
+		limit = 2
+		ttl   = time.Millisecond * 100
+		ms    = int64(ttl / time.Millisecond)
 	)
 
 	storage := NewStorage(ttl)

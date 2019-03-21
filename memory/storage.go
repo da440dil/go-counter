@@ -30,7 +30,7 @@ type Storage struct {
 }
 
 type data struct {
-	value uint64
+	value int64
 	ttl   time.Duration
 }
 
@@ -60,7 +60,7 @@ func (s *Storage) init() {
 	}
 }
 
-func (s *Storage) Incr(key string, limit uint64, ttl time.Duration) (int64, error) {
+func (s *Storage) Incr(key string, limit int64, ttl time.Duration) (int64, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 

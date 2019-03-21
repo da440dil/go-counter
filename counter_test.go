@@ -30,8 +30,8 @@ func TestRedis(t *testing.T) {
 	}
 
 	const (
-		limit uint64 = 2
-		ttl          = time.Millisecond * 200
+		limit = 2
+		ttl   = time.Millisecond * 200
 	)
 
 	st := rs.NewStorage(client)

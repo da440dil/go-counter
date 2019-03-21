@@ -8,19 +8,20 @@ type Storage interface {
 	// Incr sets key value and ttl of key if key not exists or increment key value if key exists,
 	// returns -1 if key value less than or equal limit,
 	// returns ttl in milliseconds if key value greater than limit.
-	Incr(key string, limit uint64, ttl time.Duration) (int64, error)
+	Incr(key string, limit int64, ttl time.Duration) (int64, error)
 }
 
 // Params defines parameters for creating new Counter.
 type Params struct {
 	TTL    time.Duration // TTL of key (required).
-	Limit  uint64        // Maximum key value (optional, should be greater than 0, by default equals 1).
+	Limit  int64         // Maximum key value (optional, should be greater than 0, by default equals 1).
 	Prefix string        // Prefix of key (optional).
 }
 
 // NewCounter allocates and returns new Counter.
+// If Params.Limit is less than 1 it will be set to 1 silently.
 func NewCounter(storage Storage, params Params) *Counter {
-	var limit uint64 = 1
+	var limit int64 = 1
 	if params.Limit > 1 {
 		limit = params.Limit
 	}
@@ -35,7 +36,7 @@ func NewCounter(storage Storage, params Params) *Counter {
 // Counter implements distributed rate limiting.
 type Counter struct {
 	storage Storage
-	limit   uint64
+	limit   int64
 	ttl     time.Duration
 	prefix  string
 }

@@ -29,9 +29,9 @@ func Test(t *testing.T) {
 	}
 
 	const (
-		limit uint64 = 2
-		ttl          = time.Millisecond * 1000
-		ms           = int64(ttl / time.Millisecond)
+		limit = 2
+		ttl   = time.Millisecond * 1000
+		ms    = int64(ttl / time.Millisecond)
 	)
 
 	storage := NewStorage(client)
@@ -82,9 +82,9 @@ func TestTTL(t *testing.T) {
 	}
 
 	const (
-		limit uint64 = 2
-		ttl          = time.Millisecond * 100
-		ms           = int64(ttl / time.Millisecond)
+		limit = 2
+		ttl   = time.Millisecond * 100
+		ms    = int64(ttl / time.Millisecond)
 	)
 
 	storage := NewStorage(client)

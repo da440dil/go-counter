@@ -29,7 +29,7 @@ type Storage struct {
 	client *redis.Client
 }
 
-func (s *Storage) Incr(key string, limit uint64, ttl time.Duration) (int64, error) {
+func (s *Storage) Incr(key string, limit int64, ttl time.Duration) (int64, error) {
 	res, err := incr.Run(s.client, []string{key}, limit, strconv.FormatInt(int64(ttl/time.Millisecond), 10)).Result()
 	if err == redis.Nil {
 		return -1, nil
