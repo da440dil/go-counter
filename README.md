@@ -26,9 +26,9 @@ func main() {
 	defer client.Close()
 
 	const (
-		limit uint64 = 2
-		ttl          = time.Millisecond * 100
-		key          = "key"
+		limit = 2
+		ttl   = time.Millisecond * 100
+		key   = "key"
 	)
 	// Create Redis storage
 	storage := storage.NewStorage(client)
