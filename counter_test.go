@@ -1,69 +1,101 @@
 package counter
 
 import (
+	"errors"
 	"testing"
 	"time"
 
-	rs "github.com/da440dil/go-counter/redis"
-	rd "github.com/go-redis/redis"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
-const redisAddr = "127.0.0.1:6379"
-const redisDb = 10
+type gwMock struct {
+	mock.Mock
+}
 
-func TestRedis(t *testing.T) {
-	client := rd.NewClient(&rd.Options{
-		Addr: redisAddr,
-		DB:   redisDb,
-	})
-	defer client.Close()
+func (m *gwMock) Incr(key string, limit int64, ttl int64) (int64, error) {
+	args := m.Called(key, limit, ttl)
+	return args.Get(0).(int64), args.Error(1)
+}
 
-	if err := client.Ping().Err(); err != nil {
-		t.Fatal("redis ping failed")
-	}
-
-	const key = "key"
-
-	if err := client.Del(key).Err(); err != nil {
-		t.Fatal("redis del failed")
-	}
-
+func TestCounter(t *testing.T) {
 	const (
-		limit = 2
-		ttl   = time.Millisecond * 200
+		key     = "key"
+		limit   = int64(2)
+		ttlTime = time.Millisecond * 500
+		ttl     = int64(ttlTime / time.Millisecond)
 	)
 
-	st := rs.NewStorage(client)
-	ct := NewCounter(st, Params{
-		Limit: limit,
-		TTL:   ttl,
+	params := Params{TTL: ttlTime, Limit: limit}
+
+	t.Run("error", func(t *testing.T) {
+		e := errors.New("any")
+		gw := &gwMock{}
+		gw.On("Incr", key, limit, ttl).Return(int64(-1), e)
+
+		ctr := WithGateway(gw, params)
+
+		err := ctr.Count(key)
+		assert.Error(t, err)
+		assert.Equal(t, e, err)
 	})
 
-	var err error
-	var v int64
+	t.Run("failure", func(t *testing.T) {
+		vErr := int64(42)
+		gw := &gwMock{}
+		gw.On("Incr", key, limit, ttl).Return(vErr, nil)
 
-	v, err = ct.Count(key)
-	assert.NoError(t, err)
-	assert.True(t, v == -1)
+		ctr := WithGateway(gw, params)
 
-	v, err = ct.Count(key)
-	assert.NoError(t, err)
-	assert.True(t, v == -1)
+		err := ctr.Count(key)
+		assert.Error(t, err)
+		assert.Exactly(t, newTTLError(vErr), err)
+		gw.AssertExpectations(t)
+	})
 
-	v, err = ct.Count(key)
-	assert.NoError(t, err)
-	assert.True(t, v >= 0 && v <= int64(ttl))
+	t.Run("success", func(t *testing.T) {
+		gw := &gwMock{}
+		gw.On("Incr", key, limit, ttl).Return(int64(-1), nil)
 
-	if err := client.Del(key).Err(); err != nil {
-		t.Fatal("redis del failed")
-	}
+		ctr := WithGateway(gw, params)
 
-	v, err = ct.Count(key)
-	assert.NoError(t, err)
-	assert.True(t, v == -1)
+		err := ctr.Count(key)
+		assert.NoError(t, err)
+		gw.AssertExpectations(t)
+	})
+}
 
-	if err := client.Del(key).Err(); err != nil {
-		t.Fatal("redis del failed")
-	}
+func TestParams(t *testing.T) {
+	t.Run("invalid ttl", func(t *testing.T) {
+		defer func() {
+			r := recover()
+			assert.NotNil(t, r)
+			err, ok := r.(error)
+			assert.True(t, ok)
+			assert.Error(t, err)
+			assert.Equal(t, errInvalidTTL, err)
+		}()
+
+		Params{TTL: time.Microsecond}.validate()
+	})
+
+	t.Run("invalid limit", func(t *testing.T) {
+		defer func() {
+			r := recover()
+			assert.NotNil(t, r)
+			err, ok := r.(error)
+			assert.True(t, ok)
+			assert.Error(t, err)
+			assert.Equal(t, errInvalidLimit, err)
+		}()
+
+		Params{TTL: time.Millisecond}.validate()
+	})
+}
+
+func TestTTLError(t *testing.T) {
+	vErr := int64(42)
+	err := newTTLError(vErr)
+	assert.EqualError(t, err, errTooManyRequests.Error())
+	assert.Equal(t, time.Duration(vErr)*time.Millisecond, err.TTL())
 }
