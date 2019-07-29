@@ -1,5 +1,7 @@
 # go-counter
 
+[![GoDoc](https://godoc.org/github.com/da440dil/go-counter?status.svg)](https://godoc.org/github.com/da440dil/go-counter)
+
 Distributed rate limiting using [Redis](https://redis.io/).
 
 ## Example
