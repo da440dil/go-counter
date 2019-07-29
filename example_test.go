@@ -2,6 +2,7 @@ package counter_test
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/da440dil/go-counter"
@@ -14,23 +15,29 @@ func Example() {
 
 	ctr := counter.NewCounter(
 		client,
-		counter.Params{TTL: time.Millisecond * 100, Limit: 1},
+		counter.Params{TTL: time.Millisecond * 100, Limit: 2},
 	)
-	handle := func(err error) {
-		if err == nil {
-			fmt.Println("Counter has counted the key")
-		} else {
-			if e, ok := err.(counter.TTLError); ok {
-				fmt.Printf("Counter has reached the limit, retry after %v\n", e.TTL())
-			} else {
-				panic(err)
-			}
-		}
-	}
 	key := "key"
-	handle(ctr.Count(key))
-	handle(ctr.Count(key))
-	// Output:
-	// Counter has counted the key
-	// Counter has reached the limit, retry after 100ms
+	var wg sync.WaitGroup
+	count := func() {
+		wg.Add(1)
+		go func() {
+			v, err := ctr.Count(key)
+			if err == nil {
+				fmt.Printf("Counter has counted the key, remainder %v\n", v)
+			} else {
+				if e, ok := err.(counter.TTLError); ok {
+					fmt.Printf("Counter has reached the limit, retry after %v\n", e.TTL())
+				} else {
+					panic(err)
+				}
+			}
+			wg.Done()
+		}()
+	}
+
+	count() // Counter has counted the key, remainder 1
+	count() // Counter has counted the key, remainder 0
+	count() // Counter has reached the limit, retry after 100ms
+	wg.Wait()
 }

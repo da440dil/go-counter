@@ -13,53 +13,55 @@ type gwMock struct {
 	mock.Mock
 }
 
-func (m *gwMock) Incr(key string, limit int64, ttl int64) (int64, error) {
-	args := m.Called(key, limit, ttl)
-	return args.Get(0).(int64), args.Error(1)
+func (m *gwMock) Incr(key string, ttl int) (int, int, error) {
+	args := m.Called(key, ttl)
+	return args.Get(0).(int), args.Get(1).(int), args.Error(2)
 }
 
-func TestCounter(t *testing.T) {
-	const (
-		key     = "key"
-		limit   = int64(2)
-		ttlTime = time.Millisecond * 500
-		ttl     = int64(ttlTime / time.Millisecond)
-	)
+const Key = "key"
+const TTL = time.Millisecond * 100
+const Limit = 1
 
-	params := Params{TTL: ttlTime, Limit: limit}
+func TestCounter(t *testing.T) {
+	params := Params{TTL: TTL, Limit: Limit}
+
+	ttl := durationToMilliseconds(TTL)
 
 	t.Run("error", func(t *testing.T) {
 		e := errors.New("any")
 		gw := &gwMock{}
-		gw.On("Incr", key, limit, ttl).Return(int64(-1), e)
+		gw.On("Incr", Key, ttl).Return(-1, 42, e)
 
 		ctr := WithGateway(gw, params)
 
-		err := ctr.Count(key)
+		v, err := ctr.Count(Key)
+		assert.Equal(t, -1, v)
 		assert.Error(t, err)
 		assert.Equal(t, e, err)
 	})
 
 	t.Run("failure", func(t *testing.T) {
-		vErr := int64(42)
+		ettl := 42
 		gw := &gwMock{}
-		gw.On("Incr", key, limit, ttl).Return(vErr, nil)
+		gw.On("Incr", Key, ttl).Return(Limit+1, ettl, nil)
 
 		ctr := WithGateway(gw, params)
 
-		err := ctr.Count(key)
+		v, err := ctr.Count(Key)
+		assert.Equal(t, -1, v)
 		assert.Error(t, err)
-		assert.Exactly(t, newTTLError(vErr), err)
+		assert.Exactly(t, newTTLError(ettl), err)
 		gw.AssertExpectations(t)
 	})
 
 	t.Run("success", func(t *testing.T) {
 		gw := &gwMock{}
-		gw.On("Incr", key, limit, ttl).Return(int64(-1), nil)
+		gw.On("Incr", Key, ttl).Return(Limit, 42, nil)
 
 		ctr := WithGateway(gw, params)
 
-		err := ctr.Count(key)
+		v, err := ctr.Count(Key)
+		assert.Equal(t, 0, v)
 		assert.NoError(t, err)
 		gw.AssertExpectations(t)
 	})
@@ -94,8 +96,8 @@ func TestParams(t *testing.T) {
 }
 
 func TestTTLError(t *testing.T) {
-	vErr := int64(42)
-	err := newTTLError(vErr)
+	ettl := 42
+	err := newTTLError(ettl)
 	assert.EqualError(t, err, errTooManyRequests.Error())
-	assert.Equal(t, time.Duration(vErr)*time.Millisecond, err.TTL())
+	assert.Equal(t, millisecondsToDuration(ettl), err.TTL())
 }

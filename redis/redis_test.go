@@ -9,80 +9,66 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const Addr = "127.0.0.1:6379"
+const Addr = "localhost:6379"
 const DB = 10
+
+const Key = "key"
+const TTL = 100
 
 func TestGateway(t *testing.T) {
 	client := redis.NewClient(&redis.Options{Addr: Addr, DB: DB})
 	defer client.Close()
 
-	const (
-		key     = "key"
-		limit   = int64(2)
-		ttlTime = time.Millisecond * 500
-		ttl     = int64(ttlTime / time.Millisecond)
-		vOK     = int64(-1)
-		zeroTTL = int64(0)
-		nilTTL  = int64(-2)
-	)
-
 	storage := &Storage{client, t}
-	storage.Del(key)
-	defer storage.Del(key)
+	storage.Del(Key)
+	defer storage.Del(Key)
 
-	gw := NewGateway(client)
+	timeout := time.Duration(TTL+20) * time.Millisecond
 
-	t.Run("incr #1 success", func(t *testing.T) {
-		v, err := gw.Incr(key, limit, ttl)
+	t.Run("set key value and TTL of key if key not exists", func(t *testing.T) {
+		gw := NewGateway(client)
+
+		v, ttl, err := gw.Incr(Key, TTL)
 		assert.NoError(t, err)
-		assert.Equal(t, vOK, v)
-		k := storage.Get(key)
+		assert.Equal(t, 1, v)
+		assert.Equal(t, TTL, ttl)
+
+		k := storage.Get(Key)
 		assert.Equal(t, "1", k)
-		r := storage.PTTL(key)
-		assert.Greater(t, r, zeroTTL)
-		assert.LessOrEqual(t, r, ttl)
-	})
+		r := storage.PTTL(Key)
+		assert.Greater(t, r, 0)
+		assert.LessOrEqual(t, r, TTL)
 
-	t.Run("incr #2 success", func(t *testing.T) {
-		v, err := gw.Incr(key, limit, ttl)
-		assert.NoError(t, err)
-		assert.Equal(t, vOK, v)
-		k := storage.Get(key)
-		assert.Equal(t, "2", k)
-		r := storage.PTTL(key)
-		assert.Greater(t, r, zeroTTL)
-		assert.LessOrEqual(t, r, ttl)
-	})
+		time.Sleep(timeout)
 
-	t.Run("incr #3 fail", func(t *testing.T) {
-		v, err := gw.Incr(key, limit, ttl)
-		assert.NoError(t, err)
-		assert.Greater(t, v, zeroTTL)
-		assert.LessOrEqual(t, v, ttl)
-		k := storage.Get(key)
-		assert.Equal(t, "3", k)
-		r := storage.PTTL(key)
-		assert.Greater(t, r, zeroTTL)
-		assert.LessOrEqual(t, r, ttl)
-	})
-
-	t.Run("sleep", func(t *testing.T) {
-		time.Sleep(ttlTime + time.Millisecond*100)
-		k := storage.Get(key)
+		k = storage.Get(Key)
 		assert.Equal(t, "", k)
-		r := storage.PTTL(key)
-		assert.Equal(t, nilTTL, r)
+		r = storage.PTTL(Key)
+		assert.Equal(t, -2, r)
 	})
 
-	t.Run("incr #1 success", func(t *testing.T) {
-		v, err := gw.Incr(key, limit, ttl)
+	t.Run("increment key value if key exists", func(t *testing.T) {
+		gw := NewGateway(client)
+		gw.Incr(Key, TTL)
+
+		v, ttl, err := gw.Incr(Key, TTL)
 		assert.NoError(t, err)
-		assert.Equal(t, vOK, v)
-		k := storage.Get(key)
-		assert.Equal(t, "1", k)
-		r := storage.PTTL(key)
-		assert.Greater(t, r, zeroTTL)
-		assert.LessOrEqual(t, r, ttl)
+		assert.Equal(t, 2, v)
+		assert.Greater(t, ttl, 0)
+		assert.LessOrEqual(t, ttl, TTL)
+
+		k := storage.Get(Key)
+		assert.Equal(t, "2", k)
+		r := storage.PTTL(Key)
+		assert.Greater(t, r, 0)
+		assert.LessOrEqual(t, r, TTL)
+
+		time.Sleep(timeout)
+
+		k = storage.Get(Key)
+		assert.Equal(t, "", k)
+		r = storage.PTTL(Key)
+		assert.Equal(t, -2, r)
 	})
 }
 
@@ -92,28 +78,26 @@ func BenchmarkGateway(b *testing.B) {
 
 	keys := []string{"k0", "k1", "k2", "k3", "k4", "k5", "k6", "k7", "k8", "k9"}
 	testCases := []struct {
-		limit int
-		ttl   time.Duration
+		ttl int
 	}{
-		{10000, time.Millisecond * 1000},
-		{100000, time.Millisecond * 10000},
-		{1000000, time.Millisecond * 100000},
-		{10000000, time.Millisecond * 1000000},
+		{1000},
+		{10000},
+		{100000},
+		{1000000},
 	}
 
 	storage := &Storage{client, b}
 	gw := NewGateway(client)
 
 	for _, tc := range testCases {
-		b.Run(fmt.Sprintf("limit %v ttl %v", tc.limit, tc.ttl), func(b *testing.B) {
+		b.Run(fmt.Sprintf("ttl %v", tc.ttl), func(b *testing.B) {
 			storage.Del(keys...)
 			defer storage.Del(keys...)
 
-			limit := int64(tc.limit)
-			ttl := int64(tc.ttl / time.Millisecond)
+			ttl := tc.ttl
 			kl := len(keys)
 			for i := 0; i < b.N; i++ {
-				_, err := gw.Incr(keys[i%kl], limit, ttl)
+				_, _, err := gw.Incr(keys[i%kl], ttl)
 				assert.NoError(b, err)
 			}
 		})
@@ -142,13 +126,10 @@ func (s *Storage) Get(key string) string {
 	return v
 }
 
-func (s *Storage) PTTL(key string) int64 {
+func (s *Storage) PTTL(key string) int {
 	v, err := s.c.PTTL(key).Result()
 	if err != nil {
 		s.t.Fatal("redis pttl failed")
 	}
-	if v > 0 {
-		return int64(v / time.Millisecond)
-	}
-	return int64(v)
+	return int(v / time.Millisecond)
 }

@@ -15,13 +15,12 @@ var ErrKeyNameClash = errors.New("Key name clash")
 
 var incr = redis.NewScript(
 	"local v = redis.call(\"incr\", KEYS[1]) " +
-		"if v > tonumber(ARGV[1]) then " +
-		"return redis.call(\"pttl\", KEYS[1]) " +
-		"end " +
 		"if v == 1 then " +
-		"redis.call(\"pexpire\", KEYS[1], ARGV[2]) " +
+		"redis.call(\"pexpire\", KEYS[1], ARGV[1]) " +
+		"return {v, -2} " +
 		"end " +
-		"return nil",
+		"local t = redis.call(\"pttl\", KEYS[1]) " +
+		"return {v, t}",
 )
 
 // Gateway is a gateway to Redis storage.
@@ -34,20 +33,44 @@ func NewGateway(client *redis.Client) *Gateway {
 	return &Gateway{client}
 }
 
-func (gw *Gateway) Incr(key string, limit int64, ttl int64) (int64, error) {
-	res, err := incr.Run(gw.client, []string{key}, limit, ttl).Result()
+// Incr sets key value and TTL of key if key not exists.
+// Increments key value if key exists.
+// Returns key value after increment, TTL of a key in milliseconds.
+func (gw *Gateway) Incr(key string, ttl int) (int, int, error) {
+	res, err := incr.Run(gw.client, []string{key}, ttl).Result()
 	if err != nil {
-		if err == redis.Nil {
-			return -1, nil
-		}
-		return -2, err
+		return 0, 0, err
 	}
-	i, ok := res.(int64)
+
+	var ok bool
+	var arr []interface{}
+	arr, ok = res.([]interface{})
 	if !ok {
-		return -2, ErrInvalidResponse
+		return 0, 0, ErrInvalidResponse
 	}
-	if i == -1 {
-		return -2, ErrKeyNameClash
+	if len(arr) != 2 {
+		return 0, 0, ErrInvalidResponse
 	}
-	return i, nil
+
+	var v int64
+	v, ok = arr[0].(int64)
+	if !ok {
+		return 0, 0, ErrInvalidResponse
+	}
+
+	var t int64
+	t, ok = arr[1].(int64)
+	if !ok {
+		return 0, 0, ErrInvalidResponse
+	}
+
+	if t == -1 {
+		return 0, 0, ErrKeyNameClash
+	}
+
+	if t == -2 {
+		return int(v), ttl, nil
+	}
+
+	return int(v), int(t), err
 }
