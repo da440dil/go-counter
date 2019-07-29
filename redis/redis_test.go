@@ -36,8 +36,7 @@ func TestGateway(t *testing.T) {
 		k := storage.Get(Key)
 		assert.Equal(t, "1", k)
 		r := storage.PTTL(Key)
-		assert.Greater(t, r, 0)
-		assert.LessOrEqual(t, r, TTL)
+		assert.True(t, r > 0 && r <= TTL)
 
 		time.Sleep(timeout)
 
@@ -54,14 +53,12 @@ func TestGateway(t *testing.T) {
 		v, ttl, err := gw.Incr(Key, TTL)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, v)
-		assert.Greater(t, ttl, 0)
-		assert.LessOrEqual(t, ttl, TTL)
+		assert.True(t, ttl > 0 && ttl <= TTL)
 
 		k := storage.Get(Key)
 		assert.Equal(t, "2", k)
 		r := storage.PTTL(Key)
-		assert.Greater(t, r, 0)
-		assert.LessOrEqual(t, r, TTL)
+		assert.True(t, r > 0 && r <= TTL)
 
 		time.Sleep(timeout)
 
