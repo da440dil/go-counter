@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-redis/redis"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -18,9 +19,20 @@ func (m *gwMock) Incr(key string, ttl int) (int, int, error) {
 	return args.Int(0), args.Int(1), args.Error(2)
 }
 
+const Addr = "localhost:6379"
+const DB = 10
+
 const Key = "key"
 const TTL = time.Millisecond * 100
 const Limit = 1
+
+func TestNewCounter(t *testing.T) {
+	client := redis.NewClient(&redis.Options{Addr: Addr, DB: DB})
+	defer client.Close()
+
+	ctr := NewCounter(client, Params{TTL: TTL, Limit: Limit})
+	assert.IsType(t, &Counter{}, ctr)
+}
 
 func TestCounter(t *testing.T) {
 	params := Params{TTL: TTL, Limit: Limit}
