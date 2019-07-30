@@ -15,7 +15,7 @@ type gwMock struct {
 
 func (m *gwMock) Incr(key string, ttl int) (int, int, error) {
 	args := m.Called(key, ttl)
-	return args.Get(0).(int), args.Get(1).(int), args.Error(2)
+	return args.Int(0), args.Int(1), args.Error(2)
 }
 
 const Key = "key"
@@ -38,19 +38,20 @@ func TestCounter(t *testing.T) {
 		assert.Equal(t, -1, v)
 		assert.Error(t, err)
 		assert.Equal(t, e, err)
+		gw.AssertExpectations(t)
 	})
 
 	t.Run("failure", func(t *testing.T) {
-		ettl := 42
+		et := 42
 		gw := &gwMock{}
-		gw.On("Incr", Key, ttl).Return(Limit+1, ettl, nil)
+		gw.On("Incr", Key, ttl).Return(Limit+1, et, nil)
 
 		ctr := WithGateway(gw, params)
 
 		v, err := ctr.Count(Key)
 		assert.Equal(t, -1, v)
 		assert.Error(t, err)
-		assert.Exactly(t, newTTLError(ettl), err)
+		assert.Exactly(t, newTTLError(et), err)
 		gw.AssertExpectations(t)
 	})
 
@@ -96,8 +97,8 @@ func TestParams(t *testing.T) {
 }
 
 func TestTTLError(t *testing.T) {
-	ettl := 42
-	err := newTTLError(ettl)
+	et := 42
+	err := newTTLError(et)
 	assert.EqualError(t, err, errTooManyRequests.Error())
-	assert.Equal(t, millisecondsToDuration(ettl), err.TTL())
+	assert.Equal(t, millisecondsToDuration(et), err.TTL())
 }
