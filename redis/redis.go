@@ -72,5 +72,5 @@ func (gw *Gateway) Incr(key string, ttl int) (int, int, error) {
 		return int(v), ttl, nil
 	}
 
-	return int(v), int(t), err
+	return int(v), int(t), nil
 }
