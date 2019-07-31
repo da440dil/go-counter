@@ -44,7 +44,7 @@ func TestCounter(t *testing.T) {
 		gw := &gwMock{}
 		gw.On("Incr", Key, ttl).Return(-1, 42, e)
 
-		ctr := WithGateway(gw, params)
+		ctr := NewCounterWithGateway(gw, params)
 
 		v, err := ctr.Count(Key)
 		assert.Equal(t, -1, v)
@@ -58,7 +58,7 @@ func TestCounter(t *testing.T) {
 		gw := &gwMock{}
 		gw.On("Incr", Key, ttl).Return(Limit+1, et, nil)
 
-		ctr := WithGateway(gw, params)
+		ctr := NewCounterWithGateway(gw, params)
 
 		v, err := ctr.Count(Key)
 		assert.Equal(t, -1, v)
@@ -71,7 +71,7 @@ func TestCounter(t *testing.T) {
 		gw := &gwMock{}
 		gw.On("Incr", Key, ttl).Return(Limit, 42, nil)
 
-		ctr := WithGateway(gw, params)
+		ctr := NewCounterWithGateway(gw, params)
 
 		v, err := ctr.Count(Key)
 		assert.Equal(t, 0, v)

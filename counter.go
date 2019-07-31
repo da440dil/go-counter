@@ -36,8 +36,8 @@ func (p Params) validate() {
 	}
 }
 
-// WithGateway creates new Counter using custom Gateway.
-func WithGateway(gateway Gateway, params Params) *Counter {
+// NewCounterWithGateway creates new Counter using custom Gateway.
+func NewCounterWithGateway(gateway Gateway, params Params) *Counter {
 	params.validate()
 	return &Counter{
 		gateway: gateway,
@@ -49,7 +49,7 @@ func WithGateway(gateway Gateway, params Params) *Counter {
 
 // NewCounter creates new Counter using Redis Gateway.
 func NewCounter(client *redis.Client, params Params) *Counter {
-	return WithGateway(gw.NewGateway(client), params)
+	return NewCounterWithGateway(gw.NewGateway(client), params)
 }
 
 // Counter implements distributed rate limiting.
