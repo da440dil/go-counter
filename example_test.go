@@ -13,16 +13,16 @@ func Example() {
 	client := redis.NewClient(&redis.Options{})
 	defer client.Close()
 
-	ctr := counter.NewCounter(
-		client,
-		counter.Params{TTL: time.Millisecond * 100, Limit: 2},
-	)
+	c, err := counter.NewCounter(client, 2, time.Millisecond*100)
+	if err != nil {
+		panic(err)
+	}
 	key := "key"
 	var wg sync.WaitGroup
 	count := func() {
 		wg.Add(1)
 		go func() {
-			v, err := ctr.Count(key)
+			v, err := c.Count(key)
 			if err == nil {
 				fmt.Printf("Counter has counted the key, remainder %v\n", v)
 			} else {

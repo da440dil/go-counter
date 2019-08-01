@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/go-redis/redis"
 	"github.com/stretchr/testify/assert"
@@ -30,23 +31,91 @@ func TestNewCounter(t *testing.T) {
 	client := redis.NewClient(&redis.Options{Addr: Addr, DB: DB})
 	defer client.Close()
 
-	ctr := NewCounter(client, Params{TTL: TTL, Limit: Limit})
-	assert.IsType(t, &Counter{}, ctr)
+	t.Run("ErrInvalidLimit", func(t *testing.T) {
+		_, err := NewCounter(client, 0, time.Microsecond)
+		assert.Error(t, err)
+		assert.Equal(t, ErrInvalidLimit, err)
+	})
+
+	t.Run("ErrInvalidTTL", func(t *testing.T) {
+		_, err := NewCounter(client, Limit, time.Microsecond)
+		assert.Error(t, err)
+		assert.Equal(t, ErrInvalidTTL, err)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		c, err := NewCounter(client, Limit, TTL)
+		assert.NoError(t, err)
+		assert.IsType(t, &Counter{}, c)
+	})
+}
+
+func TestNewCounterWithGateway(t *testing.T) {
+	gw := &gwMock{}
+
+	t.Run("ErrInvalidLimit", func(t *testing.T) {
+		_, err := NewCounterWithGateway(gw, 0, time.Microsecond)
+		assert.Error(t, err)
+		assert.Equal(t, ErrInvalidLimit, err)
+	})
+
+	t.Run("ErrInvalidTTL", func(t *testing.T) {
+		_, err := NewCounterWithGateway(gw, Limit, time.Microsecond)
+		assert.Error(t, err)
+		assert.Equal(t, ErrInvalidTTL, err)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		c, err := NewCounterWithGateway(gw, Limit, TTL)
+		assert.NoError(t, err)
+		assert.IsType(t, &Counter{}, c)
+	})
+}
+
+func TestOptions(t *testing.T) {
+	gw := &gwMock{}
+
+	t.Run("ErrInvaldKey", func(t *testing.T) {
+		p := make([]byte, 512000001)
+		s := *(*string)(unsafe.Pointer(&p))
+		_, err := NewCounterWithGateway(gw, Limit, TTL, WithPrefix(s))
+		assert.Error(t, err)
+		assert.Equal(t, ErrInvaldKey, err)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		c, err := NewCounterWithGateway(gw, Limit, TTL, WithPrefix(""))
+		assert.NoError(t, err)
+		assert.IsType(t, &Counter{}, c)
+	})
 }
 
 func TestCounter(t *testing.T) {
-	params := Params{TTL: TTL, Limit: Limit}
-
 	ttl := durationToMilliseconds(TTL)
+
+	t.Run("ErrInvaldKey", func(t *testing.T) {
+		gw := &gwMock{}
+
+		c, err := NewCounterWithGateway(gw, Limit, TTL)
+		assert.NoError(t, err)
+
+		p := make([]byte, 512000001)
+		s := *(*string)(unsafe.Pointer(&p))
+		v, err := c.Count(s)
+		assert.Equal(t, -1, v)
+		assert.Error(t, err)
+		assert.Equal(t, ErrInvaldKey, err)
+	})
 
 	t.Run("error", func(t *testing.T) {
 		e := errors.New("any")
 		gw := &gwMock{}
 		gw.On("Incr", Key, ttl).Return(-1, 42, e)
 
-		ctr := NewCounterWithGateway(gw, params)
+		c, err := NewCounterWithGateway(gw, Limit, TTL)
+		assert.NoError(t, err)
 
-		v, err := ctr.Count(Key)
+		v, err := c.Count(Key)
 		assert.Equal(t, -1, v)
 		assert.Error(t, err)
 		assert.Equal(t, e, err)
@@ -58,9 +127,10 @@ func TestCounter(t *testing.T) {
 		gw := &gwMock{}
 		gw.On("Incr", Key, ttl).Return(Limit+1, et, nil)
 
-		ctr := NewCounterWithGateway(gw, params)
+		c, err := NewCounterWithGateway(gw, Limit, TTL)
+		assert.NoError(t, err)
 
-		v, err := ctr.Count(Key)
+		v, err := c.Count(Key)
 		assert.Equal(t, -1, v)
 		assert.Error(t, err)
 		assert.Exactly(t, newTTLError(et), err)
@@ -71,46 +141,19 @@ func TestCounter(t *testing.T) {
 		gw := &gwMock{}
 		gw.On("Incr", Key, ttl).Return(Limit, 42, nil)
 
-		ctr := NewCounterWithGateway(gw, params)
+		c, err := NewCounterWithGateway(gw, Limit, TTL)
+		assert.NoError(t, err)
 
-		v, err := ctr.Count(Key)
+		v, err := c.Count(Key)
 		assert.Equal(t, 0, v)
 		assert.NoError(t, err)
 		gw.AssertExpectations(t)
 	})
 }
 
-func TestParams(t *testing.T) {
-	t.Run("invalid ttl", func(t *testing.T) {
-		defer func() {
-			r := recover()
-			assert.NotNil(t, r)
-			err, ok := r.(error)
-			assert.True(t, ok)
-			assert.Error(t, err)
-			assert.Equal(t, errInvalidTTL, err)
-		}()
-
-		Params{TTL: time.Microsecond}.validate()
-	})
-
-	t.Run("invalid limit", func(t *testing.T) {
-		defer func() {
-			r := recover()
-			assert.NotNil(t, r)
-			err, ok := r.(error)
-			assert.True(t, ok)
-			assert.Error(t, err)
-			assert.Equal(t, errInvalidLimit, err)
-		}()
-
-		Params{TTL: time.Millisecond}.validate()
-	})
-}
-
 func TestTTLError(t *testing.T) {
 	et := 42
 	err := newTTLError(et)
-	assert.EqualError(t, err, errTooManyRequests.Error())
+	assert.Equal(t, ttlErrorMsg, err.Error())
 	assert.Equal(t, millisecondsToDuration(et), err.TTL())
 }

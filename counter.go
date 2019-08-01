@@ -17,39 +17,27 @@ type Gateway interface {
 	Incr(key string, ttl int) (int, int, error)
 }
 
-// Params defines parameters for creating new Counter.
-type Params struct {
-	TTL    time.Duration // TTL of a key. Must be greater than or equal to 1 millisecond.
-	Limit  int           // Maximum key value. Must be greater than 0.
-	Prefix string        // Prefix of a key. Optional.
-}
+// ErrInvalidTTL is the error returned when NewCounter receives invalid value of TTL.
+var ErrInvalidTTL = errors.New("TTL must be greater than or equal to 1 millisecond")
 
-var errInvalidTTL = errors.New("TTL must be greater than or equal to 1 millisecond")
-var errInvalidLimit = errors.New("Limit must be greater than zero")
+// ErrInvalidLimit is the error returned when NewCounter receives invalid value of limit.
+var ErrInvalidLimit = errors.New("Limit must be greater than zero")
 
-func (p Params) validate() {
-	if p.TTL < time.Millisecond {
-		panic(errInvalidTTL)
+// ErrInvaldKey is the error returned when key length is greater than 512 MB.
+var ErrInvaldKey = errors.New("Key length must be less than or equal to 512 MB")
+
+// Func is function returned by functions for setting options.
+type Func func(c *Counter) error
+
+// WithPrefix sets prefix of a key.
+func WithPrefix(v string) Func {
+	return func(c *Counter) error {
+		if !isValidKey(v) {
+			return ErrInvaldKey
+		}
+		c.prefix = v
+		return nil
 	}
-	if p.Limit < 1 {
-		panic(errInvalidLimit)
-	}
-}
-
-// NewCounterWithGateway creates new Counter using custom Gateway.
-func NewCounterWithGateway(gateway Gateway, params Params) *Counter {
-	params.validate()
-	return &Counter{
-		gateway: gateway,
-		ttl:     durationToMilliseconds(params.TTL),
-		limit:   params.Limit,
-		prefix:  params.Prefix,
-	}
-}
-
-// NewCounter creates new Counter using Redis Gateway.
-func NewCounter(client *redis.Client, params Params) *Counter {
-	return NewCounterWithGateway(gw.NewGateway(client), params)
 }
 
 // Counter implements distributed rate limiting.
@@ -60,11 +48,48 @@ type Counter struct {
 	prefix  string
 }
 
+// NewCounterWithGateway creates new Counter using custom Gateway.
+// Limit is maximum key value, must be greater than 0.
+// TTL is TTL of a key, must be greater than or equal to 1 millisecond.
+// Options are functional options.
+func NewCounterWithGateway(gateway Gateway, limit int, ttl time.Duration, options ...Func) (*Counter, error) {
+	if limit < 1 {
+		return nil, ErrInvalidLimit
+	}
+	if ttl < time.Millisecond {
+		return nil, ErrInvalidTTL
+	}
+	c := &Counter{
+		gateway: gateway,
+		ttl:     durationToMilliseconds(ttl),
+		limit:   limit,
+	}
+	for _, fn := range options {
+		err := fn(c)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return c, nil
+}
+
+// NewCounter creates new Counter using Redis Gateway.
+// Limit is maximum key value, must be greater than 0.
+// TTL is TTL of a key, must be greater than or equal to 1 millisecond.
+// Options are functional options.
+func NewCounter(client *redis.Client, limit int, ttl time.Duration, options ...Func) (*Counter, error) {
+	return NewCounterWithGateway(gw.NewGateway(client), limit, ttl, options...)
+}
+
 // Count increments key value.
 // Returns limit remainder.
 // Returns TTLError if limit exceeded.
 func (c *Counter) Count(key string) (int, error) {
-	value, ttl, err := c.gateway.Incr(c.prefix+key, c.ttl)
+	key = c.prefix + key
+	if !isValidKey(key) {
+		return -1, ErrInvaldKey
+	}
+	value, ttl, err := c.gateway.Incr(key, c.ttl)
 	if err != nil {
 		return -1, err
 	}
@@ -89,7 +114,7 @@ type TTLError interface {
 	TTL() time.Duration // Returns TTL of a key.
 }
 
-var errTooManyRequests = errors.New("Too Many Requests")
+const ttlErrorMsg = "Too Many Requests"
 
 type ttlError struct {
 	ttl time.Duration
@@ -100,9 +125,15 @@ func newTTLError(ttl int) *ttlError {
 }
 
 func (e *ttlError) Error() string {
-	return errTooManyRequests.Error()
+	return ttlErrorMsg
 }
 
 func (e *ttlError) TTL() time.Duration {
 	return e.ttl
+}
+
+const maxKeyLen = 512000000
+
+func isValidKey(key string) bool {
+	return len([]byte(key)) <= maxKeyLen
 }
