@@ -27,6 +27,9 @@ const Key = "key"
 const TTL = time.Millisecond * 100
 const Limit = 1
 
+var p = make([]byte, MaxKeySize+1)
+var invalidKey = *(*string)(unsafe.Pointer(&p))
+
 func TestNewCounter(t *testing.T) {
 	client := redis.NewClient(&redis.Options{Addr: Addr, DB: DB})
 	defer client.Close()
@@ -76,11 +79,9 @@ func TestOptions(t *testing.T) {
 	gw := &gwMock{}
 
 	t.Run("ErrInvaldKey", func(t *testing.T) {
-		p := make([]byte, 512000001)
-		s := *(*string)(unsafe.Pointer(&p))
-		_, err := NewCounterWithGateway(gw, Limit, TTL, WithPrefix(s))
+		_, err := NewCounterWithGateway(gw, Limit, TTL, WithPrefix(invalidKey))
 		assert.Error(t, err)
-		assert.Equal(t, ErrInvaldKey, err)
+		assert.Equal(t, ErrInvalidKey, err)
 	})
 
 	t.Run("success", func(t *testing.T) {
@@ -99,12 +100,10 @@ func TestCounter(t *testing.T) {
 		c, err := NewCounterWithGateway(gw, Limit, TTL)
 		assert.NoError(t, err)
 
-		p := make([]byte, 512000001)
-		s := *(*string)(unsafe.Pointer(&p))
-		v, err := c.Count(s)
+		v, err := c.Count(invalidKey)
 		assert.Equal(t, -1, v)
 		assert.Error(t, err)
-		assert.Equal(t, ErrInvaldKey, err)
+		assert.Equal(t, ErrInvalidKey, err)
 	})
 
 	t.Run("error", func(t *testing.T) {

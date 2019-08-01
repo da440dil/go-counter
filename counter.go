@@ -23,8 +23,8 @@ var ErrInvalidTTL = errors.New("TTL must be greater than or equal to 1 milliseco
 // ErrInvalidLimit is the error returned when NewCounter receives invalid value of limit.
 var ErrInvalidLimit = errors.New("Limit must be greater than zero")
 
-// ErrInvaldKey is the error returned when key length is greater than 512 MB.
-var ErrInvaldKey = errors.New("Key length must be less than or equal to 512 MB")
+// ErrInvalidKey is the error returned when key size is greater than 512 MB.
+var ErrInvalidKey = errors.New("Key size must be less than or equal to 512 MB")
 
 // Func is function returned by functions for setting options.
 type Func func(c *Counter) error
@@ -33,7 +33,7 @@ type Func func(c *Counter) error
 func WithPrefix(v string) Func {
 	return func(c *Counter) error {
 		if !isValidKey(v) {
-			return ErrInvaldKey
+			return ErrInvalidKey
 		}
 		c.prefix = v
 		return nil
@@ -87,7 +87,7 @@ func NewCounter(client *redis.Client, limit int, ttl time.Duration, options ...F
 func (c *Counter) Count(key string) (int, error) {
 	key = c.prefix + key
 	if !isValidKey(key) {
-		return -1, ErrInvaldKey
+		return -1, ErrInvalidKey
 	}
 	value, ttl, err := c.gateway.Incr(key, c.ttl)
 	if err != nil {
@@ -132,8 +132,9 @@ func (e *ttlError) TTL() time.Duration {
 	return e.ttl
 }
 
-const maxKeyLen = 512000000
+// MaxKeySize is maximum key size in bytes.
+const MaxKeySize = 512000000
 
 func isValidKey(key string) bool {
-	return len([]byte(key)) <= maxKeyLen
+	return len([]byte(key)) <= MaxKeySize
 }
