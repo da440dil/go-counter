@@ -26,11 +26,11 @@ var ErrInvalidLimit = errors.New("Limit must be greater than zero")
 // ErrInvalidKey is the error returned when key size is greater than 512 MB.
 var ErrInvalidKey = errors.New("Key size must be less than or equal to 512 MB")
 
-// Func is function returned by functions for setting options.
-type Func func(c *Counter) error
+// Option is function returned by functions for setting options.
+type Option func(c *Counter) error
 
 // WithPrefix sets prefix of a key.
-func WithPrefix(v string) Func {
+func WithPrefix(v string) Option {
 	return func(c *Counter) error {
 		if !isValidKey(v) {
 			return ErrInvalidKey
@@ -52,7 +52,7 @@ type Counter struct {
 // Limit is maximum key value, must be greater than 0.
 // TTL is TTL of a key, must be greater than or equal to 1 millisecond.
 // Options are functional options.
-func NewCounterWithGateway(gateway Gateway, limit int, ttl time.Duration, options ...Func) (*Counter, error) {
+func NewCounterWithGateway(gateway Gateway, limit int, ttl time.Duration, options ...Option) (*Counter, error) {
 	if limit < 1 {
 		return nil, ErrInvalidLimit
 	}
@@ -77,7 +77,7 @@ func NewCounterWithGateway(gateway Gateway, limit int, ttl time.Duration, option
 // Limit is maximum key value, must be greater than 0.
 // TTL is TTL of a key, must be greater than or equal to 1 millisecond.
 // Options are functional options.
-func NewCounter(client *redis.Client, limit int, ttl time.Duration, options ...Func) (*Counter, error) {
+func NewCounter(client *redis.Client, limit int, ttl time.Duration, options ...Option) (*Counter, error) {
 	return NewCounterWithGateway(gw.NewGateway(client), limit, ttl, options...)
 }
 
