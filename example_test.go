@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/da440dil/go-counter"
+	gw "github.com/da440dil/go-counter/redis"
 	"github.com/go-redis/redis"
 )
 
@@ -13,7 +14,7 @@ func Example() {
 	client := redis.NewClient(&redis.Options{})
 	defer client.Close()
 
-	c, err := counter.NewCounter(client, 2, time.Millisecond*100)
+	c, err := counter.NewCounter(gw.NewGateway(client), 2, time.Millisecond*100)
 	if err != nil {
 		panic(err)
 	}

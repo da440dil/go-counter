@@ -4,16 +4,14 @@ package counter
 import (
 	"errors"
 	"time"
-
-	gw "github.com/da440dil/go-counter/redis"
-	"github.com/go-redis/redis"
 )
 
 // Gateway to storage to store a counter value.
 type Gateway interface {
 	// Incr sets key value and TTL of key if key not exists.
 	// Increments key value if key exists.
-	// Returns key value after increment, TTL of a key in milliseconds.
+	// Returns key value after increment.
+	// Returns TTL of a key in milliseconds.
 	Incr(key string, ttl int) (int, int, error)
 }
 
@@ -48,11 +46,12 @@ type Counter struct {
 	prefix  string
 }
 
-// NewCounterWithGateway creates new Counter using custom Gateway.
+// NewCounter creates new Counter.
+// Gateway is gateway to storage to store a counter value.
 // Limit is maximum key value, must be greater than 0.
 // TTL is TTL of a key, must be greater than or equal to 1 millisecond.
 // Options are functional options.
-func NewCounterWithGateway(gateway Gateway, limit int, ttl time.Duration, options ...Option) (*Counter, error) {
+func NewCounter(gateway Gateway, limit int, ttl time.Duration, options ...Option) (*Counter, error) {
 	if limit < 1 {
 		return nil, ErrInvalidLimit
 	}
@@ -71,14 +70,6 @@ func NewCounterWithGateway(gateway Gateway, limit int, ttl time.Duration, option
 		}
 	}
 	return c, nil
-}
-
-// NewCounter creates new Counter using Redis Gateway.
-// Limit is maximum key value, must be greater than 0.
-// TTL is TTL of a key, must be greater than or equal to 1 millisecond.
-// Options are functional options.
-func NewCounter(client *redis.Client, limit int, ttl time.Duration, options ...Option) (*Counter, error) {
-	return NewCounterWithGateway(gw.NewGateway(client), limit, ttl, options...)
 }
 
 // Count increments key value.

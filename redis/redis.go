@@ -35,7 +35,8 @@ func NewGateway(client *redis.Client) *Gateway {
 
 // Incr sets key value and TTL of key if key not exists.
 // Increments key value if key exists.
-// Returns key value after increment, TTL of a key in milliseconds.
+// Returns key value after increment.
+// Returns TTL of a key in milliseconds.
 func (gw *Gateway) Incr(key string, ttl int) (int, int, error) {
 	res, err := incr.Run(gw.client, []string{key}, ttl).Result()
 	if err != nil {
