@@ -8,10 +8,10 @@ import (
 )
 
 // ErrInvalidResponse is the error returned when Redis command returns response of invalid type.
-var ErrInvalidResponse = errors.New("Invalid response")
+var ErrInvalidResponse = errors.New("counter/redis: invalid response")
 
 // ErrKeyNameClash is the error returned when Redis key exists and has no TTL.
-var ErrKeyNameClash = errors.New("Key name clash")
+var ErrKeyNameClash = errors.New("counter/redis: key name clash")
 
 var incr = redis.NewScript(
 	"local v = redis.call(\"incr\", KEYS[1]) " +

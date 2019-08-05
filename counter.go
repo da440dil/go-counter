@@ -16,13 +16,13 @@ type Gateway interface {
 }
 
 // ErrInvalidTTL is the error returned when NewCounter receives invalid value of TTL.
-var ErrInvalidTTL = errors.New("TTL must be greater than or equal to 1 millisecond")
+var ErrInvalidTTL = errors.New("counter: TTL must be greater than or equal to 1 millisecond")
 
 // ErrInvalidLimit is the error returned when NewCounter receives invalid value of limit.
-var ErrInvalidLimit = errors.New("Limit must be greater than zero")
+var ErrInvalidLimit = errors.New("counter: limit must be greater than zero")
 
 // ErrInvalidKey is the error returned when key size is greater than 512 MB.
-var ErrInvalidKey = errors.New("Key size must be less than or equal to 512 MB")
+var ErrInvalidKey = errors.New("counter: key size must be less than or equal to 512 MB")
 
 // Option is function returned by functions for setting options.
 type Option func(c *Counter) error
