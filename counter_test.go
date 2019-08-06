@@ -132,3 +132,9 @@ func TestTTLError(t *testing.T) {
 	assert.Equal(t, ttlErrorMsg, err.Error())
 	assert.Equal(t, millisecondsToDuration(et), err.TTL())
 }
+
+func TestCounterError(t *testing.T) {
+	v := "any"
+	err := counterError(v)
+	assert.Equal(t, v, err.Error())
+}
