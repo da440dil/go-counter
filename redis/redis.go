@@ -28,8 +28,8 @@ type Gateway struct {
 	client *redis.Client
 }
 
-// NewGateway creates new Gateway.
-func NewGateway(client *redis.Client) *Gateway {
+// New creates new Gateway.
+func New(client *redis.Client) *Gateway {
 	return &Gateway{client}
 }
 

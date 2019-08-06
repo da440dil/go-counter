@@ -26,7 +26,7 @@ func TestGateway(t *testing.T) {
 	timeout := time.Duration(TTL+20) * time.Millisecond
 
 	t.Run("set key value and TTL of key if key not exists", func(t *testing.T) {
-		gw := NewGateway(client)
+		gw := New(client)
 
 		v, ttl, err := gw.Incr(Key, TTL)
 		assert.NoError(t, err)
@@ -47,7 +47,7 @@ func TestGateway(t *testing.T) {
 	})
 
 	t.Run("increment key value if key exists", func(t *testing.T) {
-		gw := NewGateway(client)
+		gw := New(client)
 		gw.Incr(Key, TTL)
 
 		v, ttl, err := gw.Incr(Key, TTL)
@@ -84,7 +84,7 @@ func BenchmarkGateway(b *testing.B) {
 	}
 
 	storage := &Storage{client, b}
-	gw := NewGateway(client)
+	gw := New(client)
 
 	for _, tc := range testCases {
 		b.Run(fmt.Sprintf("ttl %v", tc.ttl), func(b *testing.B) {
