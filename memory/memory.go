@@ -117,7 +117,7 @@ func (j *janitor) Run(c *storage) {
 }
 
 func stopJanitor(gw *Gateway) {
-	gw.janitor.stop <- struct{}{}
+	close(gw.janitor.stop)
 }
 
 func runJanitor(s *storage, interval time.Duration) {
