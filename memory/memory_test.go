@@ -13,7 +13,8 @@ const TTL = 100
 const RefreshInterval = time.Millisecond * 20
 
 func TestGateway(t *testing.T) {
-	timeout := time.Duration(TTL+20) * time.Millisecond
+	tt := millisecondsToDuration(TTL)
+	timeout := millisecondsToDuration(TTL + 20)
 
 	t.Run("set key value and TTL of key if key not exists", func(t *testing.T) {
 		gw := New(RefreshInterval)
@@ -26,7 +27,8 @@ func TestGateway(t *testing.T) {
 		item := gw.get(Key)
 		assert.NotNil(t, item)
 		assert.Equal(t, 1, item.value)
-		assert.True(t, item.expiresAt.Sub(time.Now()) > 0)
+		diff := item.expiresAt.Sub(time.Now())
+		assert.True(t, diff > 0 && diff <= tt)
 
 		time.Sleep(timeout)
 
@@ -46,7 +48,8 @@ func TestGateway(t *testing.T) {
 		item := gw.get(Key)
 		assert.NotNil(t, item)
 		assert.Equal(t, 2, item.value)
-		assert.True(t, item.expiresAt.Sub(time.Now()) > 0)
+		diff := item.expiresAt.Sub(time.Now())
+		assert.True(t, diff > 0 && diff <= tt)
 
 		time.Sleep(timeout)
 
