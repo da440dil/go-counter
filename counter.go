@@ -1,7 +1,11 @@
 // Package counter provides functions for distributed rate limiting.
 package counter
 
-import "time"
+import (
+	"time"
+
+	gw "github.com/da440dil/go-counter/memory"
+)
 
 // Gateway to storage to store a counter value.
 type Gateway interface {
@@ -30,6 +34,17 @@ const ErrInvalidKey = counterError("counter: key size must be less than or equal
 // Option is function returned by functions for setting options.
 type Option func(c *Counter) error
 
+// WithGateway sets counter gateway.
+// Gateway is gateway to storage to store a counter value.
+// If gateway not set counter creates new memory gateway
+// with expired keys cleanup every 100 milliseconds.
+func WithGateway(v Gateway) Option {
+	return func(c *Counter) error {
+		c.gateway = v
+		return nil
+	}
+}
+
 // WithPrefix sets prefix of a key.
 func WithPrefix(v string) Option {
 	return func(c *Counter) error {
@@ -49,12 +64,11 @@ type Counter struct {
 	prefix  string
 }
 
-// NewCounter creates new Counter.
-// Gateway is gateway to storage to store a counter value.
+// New creates new Counter.
 // Limit is maximum key value, must be greater than 0.
 // TTL is TTL of a key, must be greater than or equal to 1 millisecond.
 // Options are functional options.
-func NewCounter(gateway Gateway, limit int, ttl time.Duration, options ...Option) (*Counter, error) {
+func New(limit int, ttl time.Duration, options ...Option) (*Counter, error) {
 	if limit < 1 {
 		return nil, ErrInvalidLimit
 	}
@@ -62,15 +76,17 @@ func NewCounter(gateway Gateway, limit int, ttl time.Duration, options ...Option
 		return nil, ErrInvalidTTL
 	}
 	c := &Counter{
-		gateway: gateway,
-		ttl:     durationToMilliseconds(ttl),
-		limit:   limit,
+		ttl:   durationToMilliseconds(ttl),
+		limit: limit,
 	}
 	for _, fn := range options {
 		err := fn(c)
 		if err != nil {
 			return nil, err
 		}
+	}
+	if c.gateway == nil {
+		c.gateway = gw.New(time.Millisecond * 100)
 	}
 	return c, nil
 }

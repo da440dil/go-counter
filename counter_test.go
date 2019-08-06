@@ -33,19 +33,19 @@ func TestNewCounter(t *testing.T) {
 	gw := &gwMock{}
 
 	t.Run("ErrInvalidLimit", func(t *testing.T) {
-		_, err := NewCounter(gw, 0, time.Microsecond)
+		_, err := New(0, time.Microsecond, WithGateway(gw))
 		assert.Error(t, err)
 		assert.Equal(t, ErrInvalidLimit, err)
 	})
 
 	t.Run("ErrInvalidTTL", func(t *testing.T) {
-		_, err := NewCounter(gw, Limit, time.Microsecond)
+		_, err := New(Limit, time.Microsecond, WithGateway(gw))
 		assert.Error(t, err)
 		assert.Equal(t, ErrInvalidTTL, err)
 	})
 
 	t.Run("success", func(t *testing.T) {
-		c, err := NewCounter(gw, Limit, TTL)
+		c, err := New(Limit, TTL, WithGateway(gw))
 		assert.NoError(t, err)
 		assert.IsType(t, &Counter{}, c)
 	})
@@ -55,13 +55,13 @@ func TestOptions(t *testing.T) {
 	gw := &gwMock{}
 
 	t.Run("ErrInvaldKey", func(t *testing.T) {
-		_, err := NewCounter(gw, Limit, TTL, WithPrefix(invalidKey))
+		_, err := New(Limit, TTL, WithPrefix(invalidKey), WithGateway(gw))
 		assert.Error(t, err)
 		assert.Equal(t, ErrInvalidKey, err)
 	})
 
 	t.Run("success", func(t *testing.T) {
-		c, err := NewCounter(gw, Limit, TTL, WithPrefix(""))
+		c, err := New(Limit, TTL, WithPrefix(""), WithGateway(gw))
 		assert.NoError(t, err)
 		assert.IsType(t, &Counter{}, c)
 	})
@@ -73,7 +73,7 @@ func TestCounter(t *testing.T) {
 	t.Run("ErrInvaldKey", func(t *testing.T) {
 		gw := &gwMock{}
 
-		c, err := NewCounter(gw, Limit, TTL)
+		c, err := New(Limit, TTL, WithGateway(gw))
 		assert.NoError(t, err)
 
 		v, err := c.Count(invalidKey)
@@ -87,7 +87,7 @@ func TestCounter(t *testing.T) {
 		gw := &gwMock{}
 		gw.On("Incr", Key, ttl).Return(-1, 42, e)
 
-		c, err := NewCounter(gw, Limit, TTL)
+		c, err := New(Limit, TTL, WithGateway(gw))
 		assert.NoError(t, err)
 
 		v, err := c.Count(Key)
@@ -102,7 +102,7 @@ func TestCounter(t *testing.T) {
 		gw := &gwMock{}
 		gw.On("Incr", Key, ttl).Return(Limit+1, et, nil)
 
-		c, err := NewCounter(gw, Limit, TTL)
+		c, err := New(Limit, TTL, WithGateway(gw))
 		assert.NoError(t, err)
 
 		v, err := c.Count(Key)
@@ -116,7 +116,7 @@ func TestCounter(t *testing.T) {
 		gw := &gwMock{}
 		gw.On("Incr", Key, ttl).Return(Limit, 42, nil)
 
-		c, err := NewCounter(gw, Limit, TTL)
+		c, err := New(Limit, TTL, WithGateway(gw))
 		assert.NoError(t, err)
 
 		v, err := c.Count(Key)
@@ -137,4 +137,11 @@ func TestCounterError(t *testing.T) {
 	v := "any"
 	err := counterError(v)
 	assert.Equal(t, v, err.Error())
+}
+
+func TestDefaultGateway(t *testing.T) {
+	c, err := New(Limit, TTL)
+	assert.NoError(t, err)
+	assert.IsType(t, &Counter{}, c)
+	assert.NotNil(t, c.gateway)
 }
