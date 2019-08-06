@@ -69,6 +69,12 @@ func TestGateway(t *testing.T) {
 	})
 }
 
+func TestGatewayError(t *testing.T) {
+	v := "any"
+	err := gatewayError(v)
+	assert.Equal(t, v, err.Error())
+}
+
 func BenchmarkGateway(b *testing.B) {
 	client := redis.NewClient(&redis.Options{Addr: Addr, DB: DB})
 	defer client.Close()
