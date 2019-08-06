@@ -42,6 +42,12 @@ func newStorage() *storage {
 	return s
 }
 
+func (s *storage) init() {
+	s.mutex.Lock()
+	s.items = make(map[string]*item)
+	s.mutex.Unlock()
+}
+
 func (s *storage) Incr(key string, ttl int) (int, int, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -82,12 +88,6 @@ func (s *storage) get(key string) *item {
 		return v
 	}
 	return nil
-}
-
-func (s *storage) init() {
-	s.mutex.Lock()
-	s.items = make(map[string]*item)
-	s.mutex.Unlock()
 }
 
 func durationToMilliseconds(duration time.Duration) int {
