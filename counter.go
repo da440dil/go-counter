@@ -80,8 +80,7 @@ func New(limit int, ttl time.Duration, options ...Option) (*Counter, error) {
 		limit: limit,
 	}
 	for _, fn := range options {
-		err := fn(c)
-		if err != nil {
+		if err := fn(c); err != nil {
 			return nil, err
 		}
 	}
