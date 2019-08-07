@@ -7,46 +7,25 @@
 
 Distributed rate limiting with pluggable storage to store a counters state.
 
-## Example
+## Basic usage
 
 ```go
-package main
-
-import (
-	"fmt"
-	"sync"
-	"time"
-
-	"github.com/da440dil/go-counter"
-)
-
-func main() {
-	c, err := counter.New(2, time.Millisecond*100)
-	if err != nil {
-		panic(err)
+// Create new Counter
+c, _ := counter.New(1, time.Millisecond*100)
+// Increment counter and get remainder
+if v, err := c.Count(key); err != nil {
+	if e, ok := err.(locker.TTLError); ok {
+		// Use e.TTL() if need
 	}
-	key := "key"
-	var wg sync.WaitGroup
-	count := func(n int) {
-		wg.Add(1)
-		go func() {
-			v, err := c.Count(key)
-			if err == nil {
-				fmt.Printf("Counter #%v has counted the key, remainder %v\n", n, v)
-			} else {
-				if e, ok := err.(counter.TTLError); ok {
-					fmt.Printf("Counter #%v has reached the limit, retry after %v\n", n, e.TTL())
-				} else {
-					panic(err)
-				}
-			}
-			wg.Done()
-		}()
-	}
-
-	count(1) // Counter #1 has counted the key, remainder 1
-	count(2) // Counter #2 has counted the key, remainder 0
-	count(3) // Counter #3 has reached the limit, retry after 100ms
-	wg.Wait()
+} else {
+	// Counter value equals 1
+	// Remainder (v) equals 0
+	// Next c.Count(key) call will return TTLError
 }
 ```
+
+## Example usage
+
+- [example](./examples/counter-gateway-default/main.go) usage with default [gateway](./gateway/memory/memory.go)
+- [example](./examples/counter-gateway-memory/main.go) usage with memory [gateway](./gateway/memory/memory.go)
+- [example](./examples/counter-gateway-redis/main.go) usage with [Redis](https://redis.io) [gateway](./gateway/redis/redis.go)
