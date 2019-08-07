@@ -139,7 +139,7 @@ func TestCounterError(t *testing.T) {
 	assert.Equal(t, v, err.Error())
 }
 
-func TestDefaultGateway(t *testing.T) {
+func TestCounterDefaultGateway(t *testing.T) {
 	c, err := New(Limit, TTL)
 	assert.NoError(t, err)
 	assert.IsType(t, &Counter{}, c)
