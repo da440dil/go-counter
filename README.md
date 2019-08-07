@@ -16,6 +16,8 @@ c, _ := counter.New(1, time.Millisecond*100)
 if v, err := c.Count("key"); err != nil {
 	if e, ok := err.(locker.TTLError); ok {
 		// Use e.TTL() if need
+	} else {
+		// Handle err
 	}
 } else {
 	// Counter value equals 1
