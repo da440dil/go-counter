@@ -13,14 +13,14 @@ Distributed rate limiting with pluggable storage to store a counters state.
 // Create new Counter
 c, _ := counter.New(1, time.Millisecond*100)
 // Increment counter and get remainder
-if v, err := c.Count(key); err != nil {
+if v, err := c.Count("key"); err != nil {
 	if e, ok := err.(locker.TTLError); ok {
 		// Use e.TTL() if need
 	}
 } else {
 	// Counter value equals 1
 	// Remainder (v) equals 0
-	// Next c.Count(key) call will return TTLError
+	// Next c.Count("key") call will return TTLError
 }
 ```
 
