@@ -27,15 +27,15 @@ func main() {
 	}
 	key := "key"
 	var wg sync.WaitGroup
-	count := func() {
+	count := func(n int) {
 		wg.Add(1)
 		go func() {
 			v, err := c.Count(key)
 			if err == nil {
-				fmt.Printf("Counter has counted the key, remainder %v\n", v)
+				fmt.Printf("Counter #%v has counted the key, remainder %v\n", n, v)
 			} else {
 				if e, ok := err.(counter.TTLError); ok {
-					fmt.Printf("Counter has reached the limit, retry after %v\n", e.TTL())
+					fmt.Printf("Counter #%v has reached the limit, retry after %v\n", n, e.TTL())
 				} else {
 					panic(err)
 				}
@@ -44,9 +44,9 @@ func main() {
 		}()
 	}
 
-	count() // Counter has counted the key, remainder 1
-	count() // Counter has counted the key, remainder 0
-	count() // Counter has reached the limit, retry after 100ms
+	count(1) // Counter #1 has counted the key, remainder 1
+	count(2) // Counter #2 has counted the key, remainder 0
+	count(3) // Counter #3 has reached the limit, retry after 100ms
 	wg.Wait()
 }
 ```
