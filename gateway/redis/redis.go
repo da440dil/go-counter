@@ -12,10 +12,10 @@ func (e gatewayError) Error() string {
 }
 
 // ErrInvalidResponse is the error returned when Redis command returns response of invalid type.
-const ErrInvalidResponse = gatewayError("counter/redis: invalid response")
+const ErrInvalidResponse = gatewayError("counter/gateway/redis: invalid response")
 
 // ErrKeyNameClash is the error returned when Redis key exists and has no TTL.
-const ErrKeyNameClash = gatewayError("counter/redis: key name clash")
+const ErrKeyNameClash = gatewayError("counter/gateway/redis: key name clash")
 
 var incr = redis.NewScript(
 	"local v = redis.call(\"incr\", KEYS[1]) " +
