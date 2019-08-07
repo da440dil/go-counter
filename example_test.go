@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/da440dil/go-counter"
-	gm "github.com/da440dil/go-counter/memory"
-	gr "github.com/da440dil/go-counter/redis"
+	gm "github.com/da440dil/go-counter/gateway/memory"
+	gr "github.com/da440dil/go-counter/gateway/redis"
 	"github.com/go-redis/redis"
 )
 

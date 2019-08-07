@@ -4,7 +4,7 @@ package counter
 import (
 	"time"
 
-	gw "github.com/da440dil/go-counter/memory"
+	gw "github.com/da440dil/go-counter/gateway/memory"
 )
 
 // Gateway to storage to store a counter value.
