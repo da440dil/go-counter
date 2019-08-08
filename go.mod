@@ -3,7 +3,7 @@ module github.com/da440dil/go-counter
 go 1.12
 
 require (
-	github.com/da440dil/go-runner v0.0.3
+	github.com/da440dil/go-trier v0.0.0
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
