@@ -69,11 +69,9 @@ func BenchmarkGateway(b *testing.B) {
 		{1000000},
 	}
 
-	gw := New(RefreshInterval)
-
 	for _, tc := range testCases {
 		b.Run(fmt.Sprintf("ttl %v", tc.ttl), func(b *testing.B) {
-			gw.init()
+			gw := New(RefreshInterval)
 
 			ttl := tc.ttl
 			kl := len(keys)

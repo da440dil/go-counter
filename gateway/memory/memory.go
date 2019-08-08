@@ -14,15 +14,22 @@ type Gateway struct {
 
 // New creates new Gateway.
 func New(cleanupInterval time.Duration) *Gateway {
-	s := newStorage()
-	// This trick ensures that the janitor goroutine does not keep
-	// the returned Gateway object from being garbage collected.
-	// When it is garbage collected, the finalizer stops the janitor goroutine,
+	s := &storage{
+		items:   make(map[string]*item),
+		cleaner: newCleaner(cleanupInterval),
+	}
+	// This trick ensures that cleanup goroutine does not keep
+	// the returned Gateway from being garbage collected.
+	// When it is garbage collected, the finalizer stops cleanup goroutine,
 	// after which storage can be collected.
-	G := &Gateway{s}
-	runJanitor(s, cleanupInterval)
-	runtime.SetFinalizer(G, stopJanitor)
-	return G
+	gw := &Gateway{s}
+	go s.cleaner.Run(s.deleteExpired)
+	runtime.SetFinalizer(gw, finalizer)
+	return gw
+}
+
+func finalizer(gw *Gateway) {
+	gw.cleaner.Stop()
 }
 
 type item struct {
@@ -33,19 +40,7 @@ type item struct {
 type storage struct {
 	items   map[string]*item
 	mutex   sync.Mutex
-	janitor *janitor
-}
-
-func newStorage() *storage {
-	s := &storage{}
-	s.init()
-	return s
-}
-
-func (s *storage) init() {
-	s.mutex.Lock()
-	s.items = make(map[string]*item)
-	s.mutex.Unlock()
+	cleaner *cleaner
 }
 
 func (s *storage) Incr(key string, ttl int) (int, int, error) {
@@ -96,35 +91,4 @@ func durationToMilliseconds(duration time.Duration) int {
 
 func millisecondsToDuration(ttl int) time.Duration {
 	return time.Duration(ttl) * time.Millisecond
-}
-
-type janitor struct {
-	interval time.Duration
-	stop     chan struct{}
-}
-
-func (j *janitor) Run(c *storage) {
-	ticker := time.NewTicker(j.interval)
-	for {
-		select {
-		case <-ticker.C:
-			c.deleteExpired()
-		case <-j.stop:
-			ticker.Stop()
-			return
-		}
-	}
-}
-
-func stopJanitor(gw *Gateway) {
-	close(gw.janitor.stop)
-}
-
-func runJanitor(s *storage, interval time.Duration) {
-	j := &janitor{
-		interval: interval,
-		stop:     make(chan struct{}),
-	}
-	s.janitor = j
-	go j.Run(s)
 }
