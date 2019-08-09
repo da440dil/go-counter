@@ -1,5 +1,7 @@
 github.com/da440dil/go-trier v0.0.0 h1:cxPHRwg2dKE/ldqPiLGtgql8VUTfvYlI+eF14BY4+I8=
 github.com/da440dil/go-trier v0.0.0/go.mod h1:Xc70OohXdJvxPLfUDjJG3TeOiitY7K4jx+Q0tm5dIy0=
+github.com/da440dil/go-trier v0.0.1 h1:plGC/S++x1ZlNjqI+uv8t/32P3TrNY6ddd57cIaxHdU=
+github.com/da440dil/go-trier v0.0.1/go.mod h1:Xc70OohXdJvxPLfUDjJG3TeOiitY7K4jx+Q0tm5dIy0=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
