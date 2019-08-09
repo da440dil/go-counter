@@ -27,7 +27,7 @@ var incr = redis.NewScript(
 		"return {v, t}",
 )
 
-// Gateway is a gateway to Redis storage.
+// Gateway to Redis storage.
 type Gateway struct {
 	client *redis.Client
 }

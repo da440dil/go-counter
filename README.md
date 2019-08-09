@@ -5,7 +5,7 @@
 [![GoDoc](https://godoc.org/github.com/da440dil/go-counter?status.svg)](https://godoc.org/github.com/da440dil/go-counter)
 [![Go Report Card](https://goreportcard.com/badge/github.com/da440dil/go-counter)](https://goreportcard.com/report/github.com/da440dil/go-counter)
 
-Distributed rate limiting with pluggable storage to store a counters state.
+Distributed rate limiting with pluggable storage for storing a counters state.
 
 ## Basic usage
 
@@ -21,7 +21,7 @@ if v, err := c.Count("key"); err != nil {
 	}
 } else {
 	// Counter value equals 1
-	// Remainder (v) equals 0
+	// Remainder value (v) equals 0
 	// Next c.Count("key") call will return TTLError
 }
 ```

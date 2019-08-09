@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// Gateway is a gateway to memory storage.
+// Gateway to memory storage.
 type Gateway struct {
 	*storage
 }
@@ -18,10 +18,7 @@ func New(cleanupInterval time.Duration) *Gateway {
 		items:   make(map[string]*item),
 		cleaner: newCleaner(cleanupInterval),
 	}
-	// This trick ensures that cleanup goroutine does not keep
-	// the returned Gateway from being garbage collected.
-	// When it is garbage collected, the finalizer stops cleanup goroutine,
-	// after which storage can be collected.
+	// See https://gist.github.com/da440dil/6469a37e649a560f528fd116fa2e874d
 	gw := &Gateway{s}
 	go s.cleaner.Run(s.deleteExpired)
 	runtime.SetFinalizer(gw, finalizer)
