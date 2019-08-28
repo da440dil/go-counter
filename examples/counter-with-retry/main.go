@@ -42,7 +42,11 @@ func main() {
 	for i := 1; i < 4; i++ {
 		// Execute function
 		if err = t.Try(fn(i)); err != nil {
-			panic(err)
+			if e, ok := err.(trier.TTLError); ok {
+				fmt.Printf("Number of retries with counter #%v exceeded, retry after %v\n", i, e.TTL())
+			} else {
+				panic(err)
+			}
 		}
 	}
 	// Output:

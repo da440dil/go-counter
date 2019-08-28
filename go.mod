@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/da440dil/go-ticker v0.0.0
-	github.com/da440dil/go-trier v0.0.1
+	github.com/da440dil/go-trier v0.0.2
 	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
