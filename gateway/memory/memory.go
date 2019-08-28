@@ -2,9 +2,12 @@
 package memory
 
 import (
+	"context"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/da440dil/go-ticker"
 )
 
 // Gateway to memory storage.
@@ -14,19 +17,19 @@ type Gateway struct {
 
 // New creates new Gateway.
 func New(cleanupInterval time.Duration) *Gateway {
+	ctx, cancel := context.WithCancel(context.Background())
 	s := &storage{
 		items:   make(map[string]*item),
-		cleaner: newCleaner(cleanupInterval),
+		cancel: cancel,
 	}
-	// See https://gist.github.com/da440dil/6469a37e649a560f528fd116fa2e874d
 	gw := &Gateway{s}
-	go s.cleaner.Run(s.deleteExpired)
+	go ticker.Run(ctx, s.deleteExpired, cleanupInterval)
 	runtime.SetFinalizer(gw, finalizer)
 	return gw
 }
 
 func finalizer(gw *Gateway) {
-	gw.cleaner.Stop()
+	gw.cancel()
 }
 
 type item struct {
@@ -37,7 +40,7 @@ type item struct {
 type storage struct {
 	items   map[string]*item
 	mutex   sync.Mutex
-	cleaner *cleaner
+	cancel func()
 }
 
 func (s *storage) Incr(key string, ttl int) (int, int, error) {
