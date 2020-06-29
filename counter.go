@@ -28,8 +28,8 @@ const ErrInvalidTTL = counterError("counter: TTL must be greater than or equal t
 // ErrInvalidLimit is the error returned when NewCounter receives invalid value of limit.
 const ErrInvalidLimit = counterError("counter: limit must be greater than 0")
 
-// ErrInvalidKey is the error returned when key size is greater than 512 MB.
-const ErrInvalidKey = counterError("counter: key size must be less than or equal to 512 MB")
+// ErrInvalidKey is the error returned when key size with prefix is greater than 512 MB.
+const ErrInvalidKey = counterError("counter: key size with prefix must be less than or equal to 512 MB")
 
 // Option is function returned by functions for setting options.
 type Option func(c *Counter) error

@@ -68,7 +68,7 @@ func TestOptions(t *testing.T) {
 }
 
 func TestCounter(t *testing.T) {
-	ttl := durationToMilliseconds(TTL)
+	ttl := int(TTL / time.Millisecond)
 
 	t.Run("ErrInvaldKey", func(t *testing.T) {
 		gw := &gwMock{}
@@ -130,7 +130,7 @@ func TestTTLError(t *testing.T) {
 	et := 42
 	err := newTTLError(et)
 	assert.Equal(t, ttlErrorMsg, err.Error())
-	assert.Equal(t, millisecondsToDuration(et), err.TTL())
+	assert.Equal(t, time.Duration(et)*time.Millisecond, err.TTL())
 }
 
 func TestCounterError(t *testing.T) {
