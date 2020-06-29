@@ -19,7 +19,7 @@ type Gateway struct {
 func New(cleanupInterval time.Duration) *Gateway {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &storage{
-		items:   make(map[string]*item),
+		items:  map[string]item{},
 		cancel: cancel,
 	}
 	gw := &Gateway{s}
@@ -38,8 +38,8 @@ type item struct {
 }
 
 type storage struct {
-	items   map[string]*item
-	mutex   sync.Mutex
+	items  map[string]item
+	mutex  sync.Mutex
 	cancel func()
 }
 
@@ -53,10 +53,11 @@ func (s *storage) Incr(key string, ttl int) (int, int, error) {
 		exp := v.expiresAt.Sub(now)
 		if exp > 0 {
 			v.value++
+			s.items[key] = v
 			return v.value, durationToMilliseconds(exp), nil
 		}
 	}
-	s.items[key] = &item{
+	s.items[key] = item{
 		value:     1,
 		expiresAt: now.Add(millisecondsToDuration(ttl)),
 	}
@@ -75,14 +76,6 @@ func (s *storage) deleteExpired() {
 	}
 
 	s.mutex.Unlock()
-}
-
-func (s *storage) get(key string) *item {
-	v, ok := s.items[key]
-	if ok {
-		return v
-	}
-	return nil
 }
 
 func durationToMilliseconds(duration time.Duration) int {

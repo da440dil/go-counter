@@ -18,43 +18,45 @@ func TestGateway(t *testing.T) {
 
 	t.Run("set key value and TTL of key if key not exists", func(t *testing.T) {
 		gw := New(RefreshInterval)
+		items := gw.storage.items
 
 		v, ttl, err := gw.Incr(Key, TTL)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, v)
 		assert.Equal(t, TTL, ttl)
 
-		item := gw.get(Key)
-		assert.NotNil(t, item)
+		item, ok := items[Key]
+		assert.True(t, ok)
 		assert.Equal(t, 1, item.value)
-		diff := item.expiresAt.Sub(time.Now())
+		diff := time.Until(item.expiresAt)
 		assert.True(t, diff > 0 && diff <= tt)
 
 		time.Sleep(timeout)
 
-		item = gw.get(Key)
-		assert.Nil(t, item)
+		_, ok = items[Key]
+		assert.False(t, ok)
 	})
 
 	t.Run("increment key value if key exists", func(t *testing.T) {
 		gw := New(RefreshInterval)
 		gw.Incr(Key, TTL)
+		items := gw.storage.items
 
 		v, ttl, err := gw.Incr(Key, TTL)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, v)
 		assert.True(t, ttl > 0 && ttl <= TTL)
 
-		item := gw.get(Key)
-		assert.NotNil(t, item)
+		item, ok := items[Key]
+		assert.True(t, ok)
 		assert.Equal(t, 2, item.value)
-		diff := item.expiresAt.Sub(time.Now())
+		diff := time.Until(item.expiresAt)
 		assert.True(t, diff > 0 && diff <= tt)
 
 		time.Sleep(timeout)
 
-		item = gw.get(Key)
-		assert.Nil(t, item)
+		_, ok = items[Key]
+		assert.False(t, ok)
 	})
 }
 
