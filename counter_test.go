@@ -126,19 +126,6 @@ func TestCounter(t *testing.T) {
 	})
 }
 
-func TestTTLError(t *testing.T) {
-	et := 42
-	err := newTTLError(et)
-	assert.Equal(t, ttlErrorMsg, err.Error())
-	assert.Equal(t, time.Duration(et)*time.Millisecond, err.TTL())
-}
-
-func TestCounterError(t *testing.T) {
-	v := "any"
-	err := counterError(v)
-	assert.Equal(t, v, err.Error())
-}
-
 func TestCounterDefaultGateway(t *testing.T) {
 	c, err := New(Limit, TTL)
 	assert.NoError(t, err)

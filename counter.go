@@ -16,21 +16,6 @@ type Gateway interface {
 	Incr(key string, ttl int) (int, int, error)
 }
 
-type counterError string
-
-func (e counterError) Error() string {
-	return string(e)
-}
-
-// ErrInvalidTTL is the error returned when NewCounter receives invalid value of TTL.
-const ErrInvalidTTL = counterError("counter: TTL must be greater than or equal to 1 millisecond")
-
-// ErrInvalidLimit is the error returned when NewCounter receives invalid value of limit.
-const ErrInvalidLimit = counterError("counter: limit must be greater than 0")
-
-// ErrInvalidKey is the error returned when key size with prefix is greater than 512 MB.
-const ErrInvalidKey = counterError("counter: key size with prefix must be less than or equal to 512 MB")
-
 // Option is function returned by functions for setting options.
 type Option func(c *Counter) error
 
@@ -115,30 +100,6 @@ func durationToMilliseconds(duration time.Duration) int {
 
 func millisecondsToDuration(ttl int) time.Duration {
 	return time.Duration(ttl) * time.Millisecond
-}
-
-// TTLError is the error returned when Counter failed to count.
-type TTLError interface {
-	Error() string
-	TTL() time.Duration // Returns TTL of a key.
-}
-
-const ttlErrorMsg = "counter: too many requests"
-
-type ttlError struct {
-	ttl time.Duration
-}
-
-func newTTLError(ttl int) *ttlError {
-	return &ttlError{millisecondsToDuration(ttl)}
-}
-
-func (e *ttlError) Error() string {
-	return ttlErrorMsg
-}
-
-func (e *ttlError) TTL() time.Duration {
-	return e.ttl
 }
 
 // MaxKeySize is maximum key size in bytes.

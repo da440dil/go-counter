@@ -18,7 +18,7 @@ func ExampleCounter() {
 		if err == nil {
 			fmt.Printf("Counter #%v has counted the key, remainder %v\n", n, v)
 		} else {
-			if _, ok := err.(counter.TTLError); ok {
+			if _, ok := err.(*counter.TTLError); ok {
 				fmt.Printf("Counter #%v has reached the limit", n)
 			} else {
 				panic(err)
