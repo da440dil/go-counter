@@ -24,7 +24,7 @@ func main() {
 			if err == nil {
 				fmt.Printf("Counter #%v has counted the key, remainder %v\n", n, v)
 			} else {
-				if e, ok := err.(counter.TTLError); ok {
+				if e, ok := err.(*counter.TTLError); ok {
 					fmt.Printf("Counter #%v has reached the limit, retry after %v\n", n, e.TTL())
 				} else {
 					panic(err)

@@ -32,7 +32,7 @@ func main() {
 				fmt.Printf("Counter #%v has counted the key, remainder %v\n", n, v)
 				return true, -1, nil // Success
 			}
-			if e, ok := err.(counter.TTLError); ok {
+			if e, ok := err.(*counter.TTLError); ok {
 				fmt.Printf("Counter #%v has reached the limit, retry after %v\n", n, e.TTL())
 				return false, e.TTL(), nil // Failure
 			}
@@ -42,7 +42,7 @@ func main() {
 	for i := 1; i < 4; i++ {
 		// Execute function
 		if err = t.Try(fn(i)); err != nil {
-			if e, ok := err.(trier.TTLError); ok {
+			if e, ok := err.(*trier.TTLError); ok {
 				fmt.Printf("Number of retries with counter #%v exceeded, retry after %v\n", i, e.TTL())
 			} else {
 				panic(err)
