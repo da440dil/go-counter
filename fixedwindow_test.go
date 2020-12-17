@@ -45,7 +45,7 @@ func TestFixedWindow(t *testing.T) {
 	require.Equal(t, 50, result.Counter())
 	require.True(t, result.TTL() >= msToDuration(0) && result.TTL() <= size)
 
-	time.Sleep(result.TTL()) // wait for the next window to start
+	time.Sleep(result.TTL() + 100*time.Millisecond) // wait for the next window to start
 
 	result, err = counter.Count(ctx, key, 70)
 	require.NoError(t, err)
