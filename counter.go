@@ -2,109 +2,82 @@
 package counter
 
 import (
+	"context"
+	"errors"
 	"time"
 
-	gw "github.com/da440dil/go-counter/gateway/memory"
+	"github.com/go-redis/redis/v8"
 )
 
-// Gateway to storage to store a counter value.
-type Gateway interface {
-	// Incr sets key value and TTL of key if key not exists.
-	// Increments key value if key exists.
-	// Returns key value after increment.
-	// Returns TTL of a key in milliseconds.
-	Incr(key string, ttl int) (int, int, error)
+// RedisClient is redis scripter interface.
+type RedisClient interface {
+	Eval(ctx context.Context, script string, keys []string, args ...interface{}) *redis.Cmd
+	EvalSha(ctx context.Context, sha1 string, keys []string, args ...interface{}) *redis.Cmd
+	ScriptExists(ctx context.Context, hashes ...string) *redis.BoolSliceCmd
+	ScriptLoad(ctx context.Context, script string) *redis.StringCmd
 }
 
-// Option is function returned by functions for setting options.
-type Option func(c *Counter) error
+var errInvalidResponse = errors.New("counter: invalid redis response")
 
-// WithGateway sets counter gateway.
-// Gateway is gateway to storage to store a counter value.
-// If gateway not set counter creates new memory gateway
-// with expired keys cleanup every 100 milliseconds.
-func WithGateway(v Gateway) Option {
-	return func(c *Counter) error {
-		c.gateway = v
-		return nil
-	}
+// Result of count() operation.
+type Result struct {
+	counter int64
+	ttl     int64
 }
 
-// WithPrefix sets prefix of a key.
-func WithPrefix(v string) Option {
-	return func(c *Counter) error {
-		if !isValidKey(v) {
-			return ErrInvalidKey
-		}
-		c.prefix = v
-		return nil
-	}
+// OK is operation success flag.
+func (r Result) OK() bool {
+	return r.ttl == -1
+}
+
+// Counter after increment.
+// With fixed window algorithm in use counter is current window counter.
+// With sliding window algorithm in use counter is sliding window counter.
+func (r Result) Counter() int {
+	return int(r.counter)
+}
+
+// TTL of the current window in milliseconds.
+// Makes sense if operation failed, otherwise ttl is less than 0.
+func (r Result) TTL() time.Duration {
+	return time.Duration(r.ttl) * time.Millisecond
 }
 
 // Counter implements distributed rate limiting.
 type Counter struct {
-	gateway Gateway
-	ttl     int
-	limit   int
-	prefix  string
+	client RedisClient
+	size   int
+	limit  int
+	script *redis.Script
 }
 
-// New creates new Counter.
-// Limit is maximum key value, must be greater than 0.
-// TTL is TTL of a key, must be greater than or equal to 1 millisecond.
-// Options are functional options.
-func New(limit int, ttl time.Duration, options ...Option) (*Counter, error) {
-	if limit < 1 {
-		return nil, ErrInvalidLimit
-	}
-	if ttl < time.Millisecond {
-		return nil, ErrInvalidTTL
-	}
-	c := &Counter{
-		ttl:   durationToMilliseconds(ttl),
-		limit: limit,
-	}
-	for _, fn := range options {
-		if err := fn(c); err != nil {
-			return nil, err
-		}
-	}
-	if c.gateway == nil {
-		c.gateway = gw.New(time.Millisecond * 100)
-	}
-	return c, nil
+func newCounter(client RedisClient, size time.Duration, limit int, src string) *Counter {
+	return &Counter{client, int(size / time.Millisecond), limit, redis.NewScript(src)}
 }
 
-// Count increments key value.
-// Returns limit remainder.
-// Returns TTLError if limit exceeded.
-func (c *Counter) Count(key string) (int, error) {
-	key = c.prefix + key
-	if !isValidKey(key) {
-		return -1, ErrInvalidKey
-	}
-	value, ttl, err := c.gateway.Incr(key, c.ttl)
+// Count increments key by value.
+func (c *Counter) Count(ctx context.Context, key string, value int) (Result, error) {
+	r := Result{}
+	res, err := c.script.Run(ctx, c.client, []string{key}, value, c.size, c.limit).Result()
 	if err != nil {
-		return -1, err
+		return r, err
 	}
-	rem := c.limit - value
-	if rem < 0 {
-		return rem, newTTLError(ttl)
+	var arr []interface{}
+	var ok bool
+	arr, ok = res.([]interface{})
+	if !ok {
+		return r, errInvalidResponse
 	}
-	return rem, nil
-}
-
-func durationToMilliseconds(duration time.Duration) int {
-	return int(duration / time.Millisecond)
-}
-
-func millisecondsToDuration(ttl int) time.Duration {
-	return time.Duration(ttl) * time.Millisecond
-}
-
-// MaxKeySize is maximum key size in bytes.
-const MaxKeySize = 512000000
-
-func isValidKey(key string) bool {
-	return len([]byte(key)) <= MaxKeySize
+	if len(arr) != 2 {
+		return r, errInvalidResponse
+	}
+	r.counter, ok = arr[0].(int64)
+	if !ok {
+		return r, errInvalidResponse
+	}
+	r.ttl, ok = arr[1].(int64)
+	if !ok {
+		return r, errInvalidResponse
+	}
+	return r, nil
 }

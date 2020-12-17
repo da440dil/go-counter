@@ -1,134 +1,90 @@
 package counter
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
-	"unsafe"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
-type gwMock struct {
+type ClientMock struct {
 	mock.Mock
 }
 
-func (m *gwMock) Incr(key string, ttl int) (int, int, error) {
-	args := m.Called(key, ttl)
-	return args.Int(0), args.Int(1), args.Error(2)
+func (m *ClientMock) EvalSha(ctx context.Context, sha1 string, keys []string, args ...interface{}) *redis.Cmd {
+	arg := m.Called(append([]interface{}{ctx, sha1, keys}, args...)...)
+	return arg.Get(0).(*redis.Cmd)
 }
 
-const Addr = "localhost:6379"
-const DB = 10
-
-const Key = "key"
-const TTL = time.Millisecond * 100
-const Limit = 1
-
-var p = make([]byte, MaxKeySize+1)
-var invalidKey = *(*string)(unsafe.Pointer(&p))
-
-func TestNewCounter(t *testing.T) {
-	gw := &gwMock{}
-
-	t.Run("ErrInvalidLimit", func(t *testing.T) {
-		_, err := New(0, time.Microsecond, WithGateway(gw))
-		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidLimit, err)
-	})
-
-	t.Run("ErrInvalidTTL", func(t *testing.T) {
-		_, err := New(Limit, time.Microsecond, WithGateway(gw))
-		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidTTL, err)
-	})
-
-	t.Run("success", func(t *testing.T) {
-		c, err := New(Limit, TTL, WithGateway(gw))
-		assert.NoError(t, err)
-		assert.IsType(t, &Counter{}, c)
-	})
+func (m *ClientMock) Eval(ctx context.Context, script string, keys []string, args ...interface{}) *redis.Cmd {
+	return nil
 }
 
-func TestOptions(t *testing.T) {
-	gw := &gwMock{}
+func (m *ClientMock) ScriptExists(ctx context.Context, hashes ...string) *redis.BoolSliceCmd {
+	return nil
+}
 
-	t.Run("ErrInvaldKey", func(t *testing.T) {
-		_, err := New(Limit, TTL, WithPrefix(invalidKey), WithGateway(gw))
-		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidKey, err)
-	})
-
-	t.Run("success", func(t *testing.T) {
-		c, err := New(Limit, TTL, WithPrefix(""), WithGateway(gw))
-		assert.NoError(t, err)
-		assert.IsType(t, &Counter{}, c)
-	})
+func (m *ClientMock) ScriptLoad(ctx context.Context, script string) *redis.StringCmd {
+	return nil
 }
 
 func TestCounter(t *testing.T) {
-	ttl := int(TTL / time.Millisecond)
+	clientMock := &ClientMock{}
+	size := 1000
+	limit := 100
+	scr := redis.NewScript("")
+	c := &Counter{clientMock, size, limit, scr}
+	ctx := context.Background()
+	key := "key"
+	keys := []string{key}
 
-	t.Run("ErrInvaldKey", func(t *testing.T) {
-		gw := &gwMock{}
+	var i interface{}
 
-		c, err := New(Limit, TTL, WithGateway(gw))
-		assert.NoError(t, err)
+	v := 1
+	e := errors.New("redis error")
+	clientMock.On("EvalSha", ctx, scr.Hash(), keys, v, size, limit).Return(redis.NewCmdResult(i, e))
+	_, err := c.Count(ctx, key, v)
+	require.Equal(t, e, err)
 
-		v, err := c.Count(invalidKey)
-		assert.Equal(t, -1, v)
-		assert.Error(t, err)
-		assert.Equal(t, ErrInvalidKey, err)
-	})
+	v = 2
+	clientMock.On("EvalSha", ctx, scr.Hash(), keys, v, size, limit).Return(redis.NewCmdResult(i, nil))
+	_, err = c.Count(ctx, key, v)
+	require.Equal(t, errInvalidResponse, err)
 
-	t.Run("error", func(t *testing.T) {
-		e := errors.New("any")
-		gw := &gwMock{}
-		gw.On("Incr", Key, ttl).Return(-1, 42, e)
+	v = 3
+	i = []interface{}{1}
+	clientMock.On("EvalSha", ctx, scr.Hash(), keys, v, size, limit).Return(redis.NewCmdResult(i, nil))
+	_, err = c.Count(ctx, key, v)
+	require.Equal(t, errInvalidResponse, err)
 
-		c, err := New(Limit, TTL, WithGateway(gw))
-		assert.NoError(t, err)
+	v = 4
+	i = []interface{}{1, -1}
+	clientMock.On("EvalSha", ctx, scr.Hash(), keys, v, size, limit).Return(redis.NewCmdResult(i, nil))
+	_, err = c.Count(ctx, key, v)
+	require.Equal(t, errInvalidResponse, err)
 
-		v, err := c.Count(Key)
-		assert.Equal(t, -1, v)
-		assert.Error(t, err)
-		assert.Equal(t, e, err)
-		gw.AssertExpectations(t)
-	})
+	v = 5
+	i = []interface{}{int64(1), -1}
+	clientMock.On("EvalSha", ctx, scr.Hash(), keys, v, size, limit).Return(redis.NewCmdResult(i, nil))
+	_, err = c.Count(ctx, key, v)
+	require.Equal(t, errInvalidResponse, err)
 
-	t.Run("failure", func(t *testing.T) {
-		et := 42
-		gw := &gwMock{}
-		gw.On("Incr", Key, ttl).Return(Limit+1, et, nil)
+	v = 6
+	i = []interface{}{int64(1), int64(-1)}
+	clientMock.On("EvalSha", ctx, scr.Hash(), keys, v, size, limit).Return(redis.NewCmdResult(i, nil))
+	result, err := c.Count(ctx, key, v)
+	require.NoError(t, err)
+	require.True(t, result.OK())
+	require.Equal(t, 1, result.Counter())
+	require.Equal(t, msToDuration(-1), result.TTL())
 
-		c, err := New(Limit, TTL, WithGateway(gw))
-		assert.NoError(t, err)
-
-		v, err := c.Count(Key)
-		assert.Equal(t, -1, v)
-		assert.Error(t, err)
-		assert.Exactly(t, newTTLError(et), err)
-		gw.AssertExpectations(t)
-	})
-
-	t.Run("success", func(t *testing.T) {
-		gw := &gwMock{}
-		gw.On("Incr", Key, ttl).Return(Limit, 42, nil)
-
-		c, err := New(Limit, TTL, WithGateway(gw))
-		assert.NoError(t, err)
-
-		v, err := c.Count(Key)
-		assert.Equal(t, 0, v)
-		assert.NoError(t, err)
-		gw.AssertExpectations(t)
-	})
+	clientMock.AssertExpectations(t)
 }
 
-func TestCounterDefaultGateway(t *testing.T) {
-	c, err := New(Limit, TTL)
-	assert.NoError(t, err)
-	assert.IsType(t, &Counter{}, c)
-	assert.NotNil(t, c.gateway)
+func msToDuration(ms int64) time.Duration {
+	return time.Duration(ms) * time.Millisecond
 }

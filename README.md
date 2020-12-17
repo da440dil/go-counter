@@ -5,30 +5,13 @@
 [![GoDoc](https://godoc.org/github.com/da440dil/go-counter?status.svg)](https://godoc.org/github.com/da440dil/go-counter)
 [![Go Report Card](https://goreportcard.com/badge/github.com/da440dil/go-counter)](https://goreportcard.com/report/github.com/da440dil/go-counter)
 
-Distributed rate limiting with pluggable storage for storing counters state.
+Distributed rate limiting using [Redis](https://redis.io/).
 
-## Basic usage
+Example usage:
 
-```go
-// Create new Counter
-c, _ := counter.New(1, time.Millisecond*100)
-// Increment counter and get remainder
-if v, err := c.Count("key"); err != nil {
-	if e, ok := err.(*counter.TTLError); ok {
-		// Use e.TTL() if need
-	} else {
-		// Handle err
-	}
-} else {
-	// Counter value equals 1
-	// Remainder value (v) equals 0
-	// Next c.Count("key") call will return TTLError
-}
-```
+- [example](./examples/fixedwindow/main.go) using [fixed window](./fixedwindow.go) algorithm 
 
-## Example usage
+    ```go run examples/fixedwindow/main.go```
+- [example](./examples/slidingwindow/main.go) using [sliding window](./slidingwindow.go) algorithm
 
-- [example](./examples/counter-gateway-default/main.go) usage with default [gateway](./gateway/memory/memory.go)
-- [example](./examples/counter-gateway-memory/main.go) usage with memory [gateway](./gateway/memory/memory.go)
-- [example](./examples/counter-gateway-redis/main.go) usage with [Redis](https://redis.io) [gateway](./gateway/redis/redis.go)
-- [example](./examples/counter-with-retry/main.go) usage with [retry](https://github.com/da440dil/go-trier)
+    ```go run examples/slidingwindow/main.go```
