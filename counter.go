@@ -37,7 +37,7 @@ func (r Result) Counter() int {
 	return int(r.counter)
 }
 
-// TTL of the current window in milliseconds.
+// TTL of the current window.
 // Makes sense if operation failed, otherwise ttl is less than 0.
 func (r Result) TTL() time.Duration {
 	return time.Duration(r.ttl) * time.Millisecond
