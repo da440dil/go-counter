@@ -19,7 +19,7 @@ type RedisClient interface {
 
 var errInvalidResponse = errors.New("counter: invalid redis response")
 
-// Result of count() operation.
+// Result of Count() operation.
 type Result struct {
 	counter int64
 	ttl     int64
@@ -62,9 +62,7 @@ func (c *Counter) Count(ctx context.Context, key string, value int) (Result, err
 	if err != nil {
 		return r, err
 	}
-	var arr []interface{}
-	var ok bool
-	arr, ok = res.([]interface{})
+	arr, ok := res.([]interface{})
 	if !ok {
 		return r, errInvalidResponse
 	}
