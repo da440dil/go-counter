@@ -17,8 +17,6 @@ type RedisClient interface {
 	ScriptLoad(ctx context.Context, script string) *redis.StringCmd
 }
 
-var errInvalidResponse = errors.New("counter: invalid redis response")
-
 // Result of Count() operation.
 type Result struct {
 	counter int64
@@ -43,6 +41,9 @@ func (r Result) TTL() time.Duration {
 	return time.Duration(r.ttl) * time.Millisecond
 }
 
+// ErrUnexpectedRedisResponse is the error returned when Redis command returns response of unexpected type.
+var ErrUnexpectedRedisResponse = errors.New("counter: unexpected redis response")
+
 // Counter implements distributed rate limiting.
 type Counter struct {
 	client RedisClient
@@ -64,18 +65,18 @@ func (c *Counter) Count(ctx context.Context, key string, value int) (Result, err
 	}
 	arr, ok := res.([]interface{})
 	if !ok {
-		return r, errInvalidResponse
+		return r, ErrUnexpectedRedisResponse
 	}
 	if len(arr) != 2 {
-		return r, errInvalidResponse
+		return r, ErrUnexpectedRedisResponse
 	}
 	r.counter, ok = arr[0].(int64)
 	if !ok {
-		return r, errInvalidResponse
+		return r, ErrUnexpectedRedisResponse
 	}
 	r.ttl, ok = arr[1].(int64)
 	if !ok {
-		return r, errInvalidResponse
+		return r, ErrUnexpectedRedisResponse
 	}
 	return r, nil
 }

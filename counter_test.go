@@ -53,25 +53,25 @@ func TestCounter(t *testing.T) {
 	v = 2
 	clientMock.On("EvalSha", ctx, scr.Hash(), keys, v, size, limit).Return(redis.NewCmdResult(i, nil))
 	_, err = c.Count(ctx, key, v)
-	require.Equal(t, errInvalidResponse, err)
+	require.Equal(t, ErrUnexpectedRedisResponse, err)
 
 	v = 3
 	i = []interface{}{1}
 	clientMock.On("EvalSha", ctx, scr.Hash(), keys, v, size, limit).Return(redis.NewCmdResult(i, nil))
 	_, err = c.Count(ctx, key, v)
-	require.Equal(t, errInvalidResponse, err)
+	require.Equal(t, ErrUnexpectedRedisResponse, err)
 
 	v = 4
 	i = []interface{}{1, -1}
 	clientMock.On("EvalSha", ctx, scr.Hash(), keys, v, size, limit).Return(redis.NewCmdResult(i, nil))
 	_, err = c.Count(ctx, key, v)
-	require.Equal(t, errInvalidResponse, err)
+	require.Equal(t, ErrUnexpectedRedisResponse, err)
 
 	v = 5
 	i = []interface{}{int64(1), -1}
 	clientMock.On("EvalSha", ctx, scr.Hash(), keys, v, size, limit).Return(redis.NewCmdResult(i, nil))
 	_, err = c.Count(ctx, key, v)
-	require.Equal(t, errInvalidResponse, err)
+	require.Equal(t, ErrUnexpectedRedisResponse, err)
 
 	v = 6
 	i = []interface{}{int64(1), int64(-1)}
