@@ -1,10 +1,3 @@
-package counter
-
-import (
-	"time"
-)
-
-var swsrc = `
 local t = redis.call("time")
 local now = t[1] * 1000 + math.floor(t[2]/1000)
 local size = ARGV[2]
@@ -31,9 +24,3 @@ else
 	redis.call("incrby", currWindowKey, ARGV[1])
 end
 return { counter, -1 }
-`
-
-// SlidingWindow creates new counter which implements distributed rate limiting using sliding window algorithm.
-func SlidingWindow(client RedisClient, size time.Duration, limit int) *Counter {
-	return newCounter(client, size, limit, swsrc)
-}

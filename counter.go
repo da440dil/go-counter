@@ -3,6 +3,7 @@ package counter
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"time"
 
@@ -79,4 +80,20 @@ func (c *Counter) Count(ctx context.Context, key string, value int) (Result, err
 		return r, ErrUnexpectedRedisResponse
 	}
 	return r, nil
+}
+
+//go:embed fixedwindow.lua
+var fwsrc string
+
+// FixedWindow creates new counter which implements distributed rate limiting using fixed window algorithm.
+func FixedWindow(client RedisClient, size time.Duration, limit int) *Counter {
+	return newCounter(client, size, limit, fwsrc)
+}
+
+//go:embed slidingwindow.lua
+var swsrc string
+
+// SlidingWindow creates new counter which implements distributed rate limiting using sliding window algorithm.
+func SlidingWindow(client RedisClient, size time.Duration, limit int) *Counter {
+	return newCounter(client, size, limit, swsrc)
 }
