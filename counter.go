@@ -53,8 +53,8 @@ type Counter struct {
 	script *redis.Script
 }
 
-func newCounter(client RedisClient, size time.Duration, limit int, src string) *Counter {
-	return &Counter{client, int(size / time.Millisecond), limit, redis.NewScript(src)}
+func newCounter(client RedisClient, size time.Duration, limit uint, src string) *Counter {
+	return &Counter{client, int(size / time.Millisecond), int(limit), redis.NewScript(src)}
 }
 
 // Count increments key by value.
@@ -86,7 +86,7 @@ func (c *Counter) Count(ctx context.Context, key string, value int) (Result, err
 var fwsrc string
 
 // FixedWindow creates new counter which implements distributed rate limiting using fixed window algorithm.
-func FixedWindow(client RedisClient, size time.Duration, limit int) *Counter {
+func FixedWindow(client RedisClient, size time.Duration, limit uint) *Counter {
 	return newCounter(client, size, limit, fwsrc)
 }
 
@@ -94,6 +94,6 @@ func FixedWindow(client RedisClient, size time.Duration, limit int) *Counter {
 var swsrc string
 
 // SlidingWindow creates new counter which implements distributed rate limiting using sliding window algorithm.
-func SlidingWindow(client RedisClient, size time.Duration, limit int) *Counter {
+func SlidingWindow(client RedisClient, size time.Duration, limit uint) *Counter {
 	return newCounter(client, size, limit, swsrc)
 }

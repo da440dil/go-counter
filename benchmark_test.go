@@ -13,7 +13,7 @@ func BenchmarkCounter(b *testing.B) {
 	defer client.Close()
 
 	size := 10 * time.Second
-	limit := 10000
+	limit := uint(10000)
 	tests := map[string]*Counter{
 		"FixedWindow":   FixedWindow(client, size, limit),
 		"SlidingWindow": SlidingWindow(client, size, limit),
