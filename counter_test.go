@@ -37,7 +37,7 @@ func TestCounter(t *testing.T) {
 	size := 1000
 	limit := 100
 	scr := redis.NewScript("")
-	c := &Counter{clientMock, size, limit, scr}
+	c := &Counter{clientMock, scr, size, limit}
 	ctx := context.Background()
 	key := "key"
 	keys := []string{key}

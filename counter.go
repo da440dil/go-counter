@@ -48,13 +48,13 @@ var ErrUnexpectedRedisResponse = errors.New("counter: unexpected redis response"
 // Counter implements distributed rate limiting.
 type Counter struct {
 	client RedisClient
+	script *redis.Script
 	size   int
 	limit  int
-	script *redis.Script
 }
 
 func newCounter(client RedisClient, size time.Duration, limit uint, src string) *Counter {
-	return &Counter{client, int(size / time.Millisecond), int(limit), redis.NewScript(src)}
+	return &Counter{client, redis.NewScript(src), int(size / time.Millisecond), int(limit)}
 }
 
 // Count increments key by value.
