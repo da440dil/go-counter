@@ -22,6 +22,7 @@ type RedisClient interface {
 type Result struct {
 	counter int64
 	ttl     int64
+	limit   int
 }
 
 // OK is operation success flag.
@@ -29,11 +30,14 @@ func (r Result) OK() bool {
 	return r.ttl == -1
 }
 
-// Counter after increment.
-// With fixed window algorithm in use counter is current window counter.
-// With sliding window algorithm in use counter is sliding window counter.
+// Counter is current counter value.
 func (r Result) Counter() int {
 	return int(r.counter)
+}
+
+// Remainder is diff between limit and current counter value.
+func (r Result) Remainder() int {
+	return r.limit - int(r.counter)
 }
 
 // TTL of the current window.
@@ -78,6 +82,10 @@ func (c *Counter) Count(ctx context.Context, key string, value int) (Result, err
 	r.ttl, ok = arr[1].(int64)
 	if !ok {
 		return r, ErrUnexpectedRedisResponse
+	}
+	r.limit = c.limit
+	if r.ttl == -2 {
+		r.ttl = 0
 	}
 	return r, nil
 }
