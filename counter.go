@@ -116,11 +116,17 @@ type Limiter interface {
 	Limit(ctx context.Context, key string) (Result, error)
 }
 
+var random *rand.Rand
+
+func init() {
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+
 // NewLimiter creates new limiter which implements distributed rate limiting.
-// Each limiter is created with pseudorandom name which may be set with options, every Redis key will be prefixed with this name.
+// Each limiter is created with pseudo-random name which may be set with options, every Redis key will be prefixed with this name.
 // The rate of decreasing the window size on each next limiter call by default equal 1, may be set with options.
 func NewLimiter(c *Counter, options ...func(*limiter)) Limiter {
-	lt := &limiter{c, strconv.Itoa(rand.Int()) + ":", 1}
+	lt := &limiter{c, strconv.Itoa(random.Int()) + ":", 1}
 	for _, option := range options {
 		option(lt)
 	}
