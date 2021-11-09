@@ -5,6 +5,10 @@ import (
 	"context"
 	_ "embed"
 	"errors"
+	"math"
+	"math/rand"
+	"strconv"
+	"sync"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -18,7 +22,7 @@ type RedisClient interface {
 	ScriptLoad(ctx context.Context, script string) *redis.StringCmd
 }
 
-// Result of Count() operation.
+// Result is counter value increment result.
 type Result struct {
 	counter int64
 	ttl     int64
@@ -49,7 +53,7 @@ func (r Result) TTL() time.Duration {
 // ErrUnexpectedRedisResponse is the error returned when Redis command returns response of unexpected type.
 var ErrUnexpectedRedisResponse = errors.New("counter: unexpected redis response")
 
-// Counter implements distributed rate limiting.
+// Counter implements distributed counter.
 type Counter struct {
 	client RedisClient
 	script *redis.Script
@@ -93,7 +97,7 @@ func (c *Counter) Count(ctx context.Context, key string, value int) (Result, err
 //go:embed fixedwindow.lua
 var fwsrc string
 
-// FixedWindow creates new counter which implements distributed rate limiting using fixed window algorithm.
+// FixedWindow creates new counter which implements distributed counter using fixed window algorithm.
 func FixedWindow(client RedisClient, size time.Duration, limit uint) *Counter {
 	return newCounter(client, size, limit, fwsrc)
 }
@@ -101,7 +105,104 @@ func FixedWindow(client RedisClient, size time.Duration, limit uint) *Counter {
 //go:embed slidingwindow.lua
 var swsrc string
 
-// SlidingWindow creates new counter which implements distributed rate limiting using sliding window algorithm.
+// SlidingWindow creates new counter which implements distributed counter using sliding window algorithm.
 func SlidingWindow(client RedisClient, size time.Duration, limit uint) *Counter {
 	return newCounter(client, size, limit, swsrc)
+}
+
+// Limiter implements distributed rate limiting.
+type Limiter interface {
+	// Limit applies the limit: increments key value of each distributed counter.
+	Limit(ctx context.Context, key string) (Result, error)
+}
+
+// NewLimiter creates new limiter which implements distributed rate limiting.
+// Each limiter is created with pseudorandom name which may be set with options, every Redis key will be prefixed with this name.
+// The rate of decreasing the window size on each next limiter call by default equal 1, may be set with options.
+func NewLimiter(c *Counter, options ...func(*limiter)) Limiter {
+	lt := &limiter{c, strconv.Itoa(rand.Int()) + ":", 1}
+	for _, option := range options {
+		option(lt)
+	}
+	return lt
+}
+
+// WithLimiterName sets unique limiter name.
+func WithLimiterName(name string) func(*limiter) {
+	return func(lt *limiter) {
+		lt.prefix = name + ":"
+	}
+}
+
+// WithLimiterRate sets limiter rate of decreasing the window size on each next limiter call.
+func WithLimiterRate(rate uint) func(*limiter) {
+	return func(lt *limiter) {
+		lt.rate = int(rate)
+	}
+}
+
+// NewLimiterSuite creates new limiter suite which contains two or more limiters which run concurently on every limiter suite call.
+func NewLimiterSuite(v1 Limiter, v2 Limiter, vs ...Limiter) Limiter {
+	lts := append([]Limiter{v1, v2}, vs...)
+	return &limiters{lts: lts, size: len(lts)}
+}
+
+type limiter struct {
+	counter *Counter
+	prefix  string
+	rate    int
+}
+
+func (lt *limiter) Limit(ctx context.Context, key string) (Result, error) {
+	return lt.counter.Count(ctx, lt.prefix+key, lt.rate)
+}
+
+type limiters struct {
+	lts  []Limiter
+	wg   sync.WaitGroup
+	mu   sync.Mutex
+	size int
+}
+
+func (ls *limiters) Limit(ctx context.Context, key string) (Result, error) {
+	results := make([]result, ls.size)
+
+	ls.mu.Lock()
+	ls.wg.Add(ls.size)
+	for i := 0; i < ls.size; i++ {
+		go func(i int) {
+			defer ls.wg.Done()
+			r, err := ls.lts[i].Limit(ctx, key)
+			results[i] = result{r, err}
+		}(i)
+	}
+	ls.wg.Wait()
+	ls.mu.Unlock()
+
+	r := Result{0, int64(-1), math.MaxInt}
+	for i := 0; i < ls.size; i++ {
+		v := results[i]
+		if v.err != nil {
+			return r, v.err
+		}
+		if v.result.OK() {
+			if r.OK() && r.Remainder() > v.result.Remainder() { // minimal remainder
+				r = v.result
+			}
+			continue
+		}
+		if r.OK() { // not ok first time
+			r = v.result
+			continue
+		}
+		if r.TTL() < v.result.TTL() { // maximum TTL
+			r = v.result
+		}
+	}
+	return r, nil
+}
+
+type result struct {
+	result Result
+	err    error
 }
