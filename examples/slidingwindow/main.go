@@ -23,7 +23,10 @@ func main() {
 	count := func(v int) counter.Result {
 		r, err := c.Count(ctx, key, v)
 		requireNoError(err)
-		fmt.Printf("Value: %v, result: { ok: %v, counter: %v, ttl: %v }\n", v, r.OK(), r.Counter(), r.TTL())
+		fmt.Printf(
+			"Value: %v, result: { ok: %v, counter: %v, remainder: %v, ttl: %v }\n",
+			v, r.OK(), r.Counter(), r.Remainder(), r.TTL(),
+		)
 		return r
 	}
 	r := count(101)
@@ -36,12 +39,12 @@ func main() {
 	time.Sleep(700 * time.Millisecond) // wait for the most time of the current window to pass
 	count(70)
 	// Output:
-	// Value: 101, result: { ok: false, counter: 0, ttl: 734ms }
-	// Value: 20, result: { ok: true, counter: 20, ttl: -1ms }
-	// Value: 30, result: { ok: true, counter: 50, ttl: -1ms }
-	// Value: 51, result: { ok: false, counter: 50, ttl: 997ms }
-	// Value: 70, result: { ok: false, counter: 49, ttl: 996ms }
-	// Value: 70, result: { ok: true, counter: 84, ttl: -1ms }
+	// Value: 101, result: { ok: false, counter: 0, remainder: 100, ttl: 473ms }
+	// Value: 20, result: { ok: true, counter: 20, remainder: 80, ttl: -1ms }
+	// Value: 30, result: { ok: true, counter: 50, remainder: 50, ttl: -1ms }
+	// Value: 51, result: { ok: false, counter: 50, remainder: 50, ttl: 980ms }
+	// Value: 70, result: { ok: false, counter: 48, remainder: 52, ttl: 978ms }
+	// Value: 70, result: { ok: true, counter: 83, remainder: 17, ttl: -1ms }
 }
 
 func requireNoError(err error) {
