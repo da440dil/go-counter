@@ -5,7 +5,6 @@ import (
 	"context"
 	_ "embed"
 	"errors"
-	"math"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -170,6 +169,8 @@ type limiters struct {
 	size int
 }
 
+const maxInt = int(^uint(0) >> 1)
+
 func (ls *limiters) Limit(ctx context.Context, key string) (Result, error) {
 	results := make([]result, ls.size)
 
@@ -185,7 +186,7 @@ func (ls *limiters) Limit(ctx context.Context, key string) (Result, error) {
 	ls.wg.Wait()
 	ls.mu.Unlock()
 
-	r := Result{0, int64(-1), math.MaxInt}
+	r := Result{0, int64(-1), maxInt}
 	for i := 0; i < ls.size; i++ {
 		v := results[i]
 		if v.err != nil {
