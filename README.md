@@ -29,12 +29,13 @@ func main() {
 	err := client.Del(ctx, key).Err()
 	requireNoError(err)
 
-	// Create limiter suite with 2 limiters.
-	ls := counter.NewLimiterSuite(
+	// Create limiter with 2 limiters.
+	ls := counter.NewLimiter(
+		client,
 		// First limiter is limited to 3 calls per second.
-		counter.NewLimiter(counter.FixedWindow(client, time.Second, 3)),
+		counter.WithLimiter(time.Second, 3),
 		// Second limiter is limited to 5 calls per 2 seconds.
-		counter.NewLimiter(counter.FixedWindow(client, time.Second*2, 5)),
+		counter.WithLimiter(time.Second*2, 5),
 	)
 
 	limit := func() {
