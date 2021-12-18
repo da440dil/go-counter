@@ -24,8 +24,8 @@ func TestSlidingWindow(t *testing.T) {
 	result, err := counter.Count(ctx, key, 101)
 	require.NoError(t, err)
 	require.False(t, result.OK())
-	require.Equal(t, 0, result.Counter())
-	require.Equal(t, 100, result.Remainder())
+	require.Equal(t, int64(0), result.Counter())
+	require.Equal(t, int64(100), result.Remainder())
 	require.True(t, result.TTL() >= msToDuration(0) && result.TTL() <= size)
 
 	time.Sleep(result.TTL()) // wait for the next window to start
@@ -33,22 +33,22 @@ func TestSlidingWindow(t *testing.T) {
 	result, err = counter.Count(ctx, key, 20)
 	require.NoError(t, err)
 	require.True(t, result.OK())
-	require.Equal(t, 20, result.Counter())
-	require.Equal(t, 80, result.Remainder())
+	require.Equal(t, int64(20), result.Counter())
+	require.Equal(t, int64(80), result.Remainder())
 	require.Equal(t, msToDuration(-1), result.TTL())
 
 	result, err = counter.Count(ctx, key, 30)
 	require.NoError(t, err)
 	require.True(t, result.OK())
-	require.Equal(t, 50, result.Counter())
-	require.Equal(t, 50, result.Remainder())
+	require.Equal(t, int64(50), result.Counter())
+	require.Equal(t, int64(50), result.Remainder())
 	require.Equal(t, msToDuration(-1), result.TTL())
 
 	result, err = counter.Count(ctx, key, 51)
 	require.NoError(t, err)
 	require.False(t, result.OK())
-	require.Equal(t, 50, result.Counter())
-	require.Equal(t, 50, result.Remainder())
+	require.Equal(t, int64(50), result.Counter())
+	require.Equal(t, int64(50), result.Remainder())
 	require.True(t, result.TTL() >= msToDuration(0) && result.TTL() <= size)
 
 	time.Sleep(result.TTL()) // wait for the next window to start
