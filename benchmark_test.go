@@ -44,25 +44,25 @@ func BenchmarkLimiter(b *testing.B) {
 	tests := map[string]Limiter{
 		"One": NewLimiter(
 			client,
-			WithLimiter(size, limit),
+			WithLimit(size, limit),
 		),
 		"Two": NewLimiter(
 			client,
-			WithLimiter(size, limit),
-			WithLimiter(size*2, limit*2),
+			WithLimit(size, limit),
+			WithLimit(size*2, limit*2),
 		),
 		"Three": NewLimiter(
 			client,
-			WithLimiter(size, limit),
-			WithLimiter(size*2, limit*2),
-			WithLimiter(size*3, limit*3),
+			WithLimit(size, limit),
+			WithLimit(size*2, limit*2),
+			WithLimit(size*3, limit*3),
 		),
 		"Four": NewLimiter(
 			client,
-			WithLimiter(size, limit),
-			WithLimiter(size*2, limit*2),
-			WithLimiter(size*3, limit*3),
-			WithLimiter(size*4, limit*4),
+			WithLimit(size, limit),
+			WithLimit(size*2, limit*2),
+			WithLimit(size*3, limit*3),
+			WithLimit(size*4, limit*4),
 		),
 	}
 

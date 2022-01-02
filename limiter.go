@@ -16,9 +16,9 @@ func init() {
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
-// Limiter implements distributed rate limiting. Contains one or more distributed counters.
+// Limiter implements distributed rate limiting.
 type Limiter interface {
-	// Limit applies the limit: increments key value of each distributed counter.
+	// Limit applies the limit.
 	Limit(ctx context.Context, key string) (Result, error)
 }
 
@@ -35,12 +35,12 @@ const (
 	algSliding = 2
 )
 
-// WithLimiter creates params to build limiter.
+// WithLimit creates parameters to build a limit.
 //
-// Each limiter uses fixed window algorithm by default, may be set with options.
-// Each limiter is created with pseudo-random name which may be set with options, every Redis key will be prefixed with this name.
-// The rate of decreasing the window size on each next limiter call by default equal 1, may be set with options.
-func WithLimiter(size time.Duration, limit uint, options ...func(*params)) *params {
+// By default a limit uses fixed window algorithm, may be set with options.
+// Each limit is created with pseudo-random name which may be set with options.
+// The rate of decreasing the window size on each next application of the limit by default equal 1, may be set with options.
+func WithLimit(size time.Duration, limit uint, options ...func(*params)) *params {
 	p := &params{alg: algFixed, size: int(size / time.Millisecond), limit: int64(limit)}
 	for _, opt := range options {
 		opt(p)
@@ -54,28 +54,28 @@ func WithLimiter(size time.Duration, limit uint, options ...func(*params)) *para
 	return p
 }
 
-// WithFixedWindow sets limiter algorithm to fixed window.
+// WithFixedWindow sets fixed window algorithm for the limit.
 func WithFixedWindow() func(*params) {
 	return func(p *params) {
 		p.alg = algFixed
 	}
 }
 
-// WithSlidingWindow sets limiter algorithm to sliding window.
+// WithSlidingWindow sets sliding window algorithm for the limit.
 func WithSlidingWindow() func(*params) {
 	return func(p *params) {
 		p.alg = algSliding
 	}
 }
 
-// WithName sets unique limiter name.
+// WithName sets unique name for the limit, every Redis key will be prefixed with this name.
 func WithName(name string) func(*params) {
 	return func(p *params) {
 		p.prefix = name + ":"
 	}
 }
 
-// WithRate sets limiter rate of decreasing the window size on each next limiter call.
+// WithRate sets the rate of decreasing the window size on each next application of the limit.
 func WithRate(rate uint) func(*params) {
 	return func(p *params) {
 		p.rate = int(rate)

@@ -18,19 +18,19 @@ func TestNewLimiter(t *testing.T) {
 	sizev := int(size / time.Millisecond)
 	limitv := int64(limit)
 
-	v1 := NewLimiter(clientMock, WithLimiter(size, limit, WithName("x")))
+	v1 := NewLimiter(clientMock, WithLimit(size, limit, WithName("x")))
 	require.Equal(t, &limiter{counter: &Counter{client: clientMock, script: fwscr, size: sizev, limit: limitv}, prefix: "x:", rate: 1}, v1)
 
-	v2 := NewLimiter(clientMock, WithLimiter(size, limit, WithName("x"), WithFixedWindow()))
+	v2 := NewLimiter(clientMock, WithLimit(size, limit, WithName("x"), WithFixedWindow()))
 	require.Equal(t, &limiter{counter: &Counter{client: clientMock, script: fwscr, size: sizev, limit: limitv}, prefix: "x:", rate: 1}, v2)
 
-	v3 := NewLimiter(clientMock, WithLimiter(size, limit, WithName("x"), WithSlidingWindow()))
+	v3 := NewLimiter(clientMock, WithLimit(size, limit, WithName("x"), WithSlidingWindow()))
 	require.Equal(t, &limiter{counter: &Counter{client: clientMock, script: swscr, size: sizev, limit: limitv}, prefix: "x:", rate: 1}, v3)
 
-	v4 := NewLimiter(clientMock, WithLimiter(size, limit, WithName("x"), WithRate(2)))
+	v4 := NewLimiter(clientMock, WithLimit(size, limit, WithName("x"), WithRate(2)))
 	require.Equal(t, &limiter{counter: &Counter{client: clientMock, script: fwscr, size: sizev, limit: limitv}, prefix: "x:", rate: 2}, v4)
 
-	v5 := NewLimiter(clientMock, WithLimiter(size, limit, WithName("x")), WithLimiter(size, limit, WithName("y")))
+	v5 := NewLimiter(clientMock, WithLimit(size, limit, WithName("x")), WithLimit(size, limit, WithName("y")))
 	require.Equal(t, &batchlimiter{client: clientMock, prefixes: []string{"x:", "y:"}, args: []interface{}{1, sizev, limitv, algFixed, 1, sizev, limitv, algFixed}}, v5)
 
 	rnd := random
@@ -39,7 +39,7 @@ func TestNewLimiter(t *testing.T) {
 		random = rnd
 	}()
 
-	v6 := NewLimiter(clientMock, WithLimiter(size, limit))
+	v6 := NewLimiter(clientMock, WithLimit(size, limit))
 	require.Equal(t, &limiter{counter: &Counter{client: clientMock, script: fwscr, size: sizev, limit: limitv}, prefix: "3440579354231278675:", rate: 1}, v6)
 }
 

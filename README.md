@@ -29,17 +29,17 @@ func main() {
 	err := client.Del(ctx, key).Err()
 	requireNoError(err)
 
-	// Create limiter with 2 limiters.
-	ls := counter.NewLimiter(
+	// Create limiter with 2 limits.
+	limiter := counter.NewLimiter(
 		client,
-		// First limiter is limited to 3 calls per second.
-		counter.WithLimiter(time.Second, 3),
-		// Second limiter is limited to 5 calls per 2 seconds.
-		counter.WithLimiter(time.Second*2, 5),
+		// First limit: no more than 3 limiter calls within 1 second.
+		counter.WithLimit(time.Second, 3),
+		// Second limit: no more than 5 limiter calls within 2 seconds.
+		counter.WithLimit(time.Second*2, 5),
 	)
 
 	limit := func() {
-		r, err := ls.Limit(ctx, key)
+		r, err := limiter.Limit(ctx, key)
 		requireNoError(err)
 		fmt.Printf(
 			"Result: { ok: %v, counter: %v, remainder: %v, ttl: %v }\n",

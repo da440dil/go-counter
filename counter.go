@@ -57,7 +57,7 @@ type Counter struct {
 	size   int
 }
 
-// Count increments key by value.
+// Count increments key value by specified value.
 func (c *Counter) Count(ctx context.Context, key string, value int) (Result, error) {
 	r := Result{}
 	res, err := c.script.Run(ctx, c.client, []string{key}, value, c.size, c.limit).Result()
