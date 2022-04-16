@@ -4,17 +4,17 @@ local function fixedWindow(key, value, size, limit)
 		counter = 0
 	end
 	if counter + value > limit then
-		local v = redis.call("pttl", key)
-		if v == -2 then
-			v = 0
+		local ttl = redis.call("pttl", key)
+		if ttl == -2 then
+			ttl = 0
 		end
-		return { tonumber(counter), v }
+		return { 0, tonumber(counter), ttl }
 	end
 	if counter == 0 then
 		redis.call("set", key, value, "px", size)
-		return { tonumber(value), -1 }
+		return { 1, tonumber(value), tonumber(size) }
 	end
-	return { redis.call("incrby", key, value), -1 }
+	return { 1, redis.call("incrby", key, value), redis.call("pttl", key) }
 end
 
 local function slidingWindow(key, value, size, limit)
@@ -35,14 +35,14 @@ local function slidingWindow(key, value, size, limit)
 	local slidingWindowCounter = math.floor(prevWindowCounter * (currWindowRemainingDuration / size) + currWindowCounter)
 	local counter = slidingWindowCounter + value
 	if counter > limit then
-		return { slidingWindowCounter, currWindowRemainingDuration }
+		return { 0, slidingWindowCounter, currWindowRemainingDuration }
 	end
 	if currWindowCounter == 0 then
 		redis.call("set", currWindowKey, value, "px", size * 2)
 	else
 		redis.call("incrby", currWindowKey, value)
 	end
-	return { counter, -1 }
+	return { 1, counter, currWindowRemainingDuration }
 end
 
 local z = 0
@@ -56,15 +56,15 @@ for i, key in ipairs(KEYS) do
 		v = slidingWindow(key, ARGV[z - 3], ARGV[z - 2], limit)
 	end
 	if i == 1 then -- first result
-		result = { v[1], v[2], limit };
-	elseif v[2] == -1 then -- ok
-		if result[2] == -1 and result[3] - result[1] > limit - v[1] then -- minimal remainder
-			result = { v[1], v[2], limit };
+		result = { v[1], v[2], v[3], limit }
+	elseif v[1] == 1 then -- ok
+		if result[1] == 1 and result[4] - result[2] > limit - v[2] then -- minimal remainder
+			result = { v[1], v[2], v[3], limit }
 		end
-	elseif result[2] == -1 then -- not ok first time
-		result = { v[1], v[2], limit };
-	elseif result[2] < v[2] then -- maximum TTL
-		result = { v[1], v[2], limit };
+	elseif result[1] == 1 then -- not ok first time
+		result = { v[1], v[2], v[3], limit }
+	elseif result[3] < v[3] then -- maximum TTL
+		result = { v[1], v[2], v[3], limit }
 	end
 end
 return result

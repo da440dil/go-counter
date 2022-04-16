@@ -152,18 +152,22 @@ func (blt *batchlimiter) Limit(ctx context.Context, key string) (Result, error) 
 	if !ok {
 		return r, ErrUnexpectedRedisResponse
 	}
-	if len(arr) != 3 {
+	if len(arr) != 4 {
 		return r, ErrUnexpectedRedisResponse
 	}
-	r.counter, ok = arr[0].(int64)
+	r.ok, ok = arr[0].(int64)
 	if !ok {
 		return r, ErrUnexpectedRedisResponse
 	}
-	r.ttl, ok = arr[1].(int64)
+	r.counter, ok = arr[1].(int64)
 	if !ok {
 		return r, ErrUnexpectedRedisResponse
 	}
-	r.limit, ok = arr[2].(int64)
+	r.ttl, ok = arr[2].(int64)
+	if !ok {
+		return r, ErrUnexpectedRedisResponse
+	}
+	r.limit, ok = arr[3].(int64)
 	if !ok {
 		return r, ErrUnexpectedRedisResponse
 	}

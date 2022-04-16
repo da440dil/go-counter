@@ -36,10 +36,10 @@ func main() {
 	count(70)
 	// Output:
 	// Value: 101, result: { ok: false, counter: 0, remainder: 100, ttl: 0s }
-	// Value: 20, result: { ok: true, counter: 20, remainder: 80, ttl: -1ms }
-	// Value: 30, result: { ok: true, counter: 50, remainder: 50, ttl: -1ms }
+	// Value: 20, result: { ok: true, counter: 20, remainder: 80, ttl: 1s }
+	// Value: 30, result: { ok: true, counter: 50, remainder: 50, ttl: 999ms }
 	// Value: 51, result: { ok: false, counter: 50, remainder: 50, ttl: 999ms }
-	// Value: 70, result: { ok: true, counter: 70, remainder: 30, ttl: -1ms }
+	// Value: 70, result: { ok: true, counter: 70, remainder: 30, ttl: 1s }
 }
 
 func requireNoError(err error) {

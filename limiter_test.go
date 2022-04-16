@@ -61,14 +61,14 @@ func TestLimiter(t *testing.T) {
 	_, err := lt.Limit(ctx, "1")
 	require.Equal(t, e, err)
 
-	i = []interface{}{int64(1), int64(-1)}
+	i = []interface{}{int64(1), int64(2), int64(100)}
 	clientMock.On("EvalSha", ctx, hash, []string{"x:2"}, rate, size, limit).Return(redis.NewCmdResult(i, nil))
 	result, err := lt.Limit(ctx, "2")
 	require.NoError(t, err)
 	require.True(t, result.OK())
-	require.Equal(t, int64(1), result.Counter())
-	require.Equal(t, limit-1, result.Remainder())
-	require.Equal(t, msToDuration(-1), result.TTL())
+	require.Equal(t, int64(2), result.Counter())
+	require.Equal(t, limit-2, result.Remainder())
+	require.Equal(t, msToDuration(100), result.TTL())
 
 	clientMock.AssertExpectations(t)
 }
@@ -95,34 +95,44 @@ func TestBatchLimiter(t *testing.T) {
 	_, err = blt.Limit(ctx, "2")
 	require.Equal(t, ErrUnexpectedRedisResponse, err)
 
-	i = []interface{}{1, -1}
+	i = []interface{}{1, 2}
 	clientMock.On("EvalSha", ctx, hash, []string{"x:3", "y:3"}, rate, size, limit, algFixed, rate, size, limit, algFixed).Return(redis.NewCmdResult(i, nil))
 	_, err = blt.Limit(ctx, "3")
 	require.Equal(t, ErrUnexpectedRedisResponse, err)
 
-	i = []interface{}{1, -1, 100}
+	i = []interface{}{1, 2, 100}
 	clientMock.On("EvalSha", ctx, hash, []string{"x:4", "y:4"}, rate, size, limit, algFixed, rate, size, limit, algFixed).Return(redis.NewCmdResult(i, nil))
 	_, err = blt.Limit(ctx, "4")
 	require.Equal(t, ErrUnexpectedRedisResponse, err)
 
-	i = []interface{}{int64(1), -1, 100}
+	i = []interface{}{1, 2, 100, 42}
 	clientMock.On("EvalSha", ctx, hash, []string{"x:5", "y:5"}, rate, size, limit, algFixed, rate, size, limit, algFixed).Return(redis.NewCmdResult(i, nil))
 	_, err = blt.Limit(ctx, "5")
 	require.Equal(t, ErrUnexpectedRedisResponse, err)
 
-	i = []interface{}{int64(1), int64(-1), 100}
+	i = []interface{}{int64(1), 2, 100, 42}
 	clientMock.On("EvalSha", ctx, hash, []string{"x:6", "y:6"}, rate, size, limit, algFixed, rate, size, limit, algFixed).Return(redis.NewCmdResult(i, nil))
 	_, err = blt.Limit(ctx, "6")
 	require.Equal(t, ErrUnexpectedRedisResponse, err)
 
-	i = []interface{}{int64(1), int64(-1), limit}
+	i = []interface{}{int64(1), int64(2), 100, 42}
 	clientMock.On("EvalSha", ctx, hash, []string{"x:7", "y:7"}, rate, size, limit, algFixed, rate, size, limit, algFixed).Return(redis.NewCmdResult(i, nil))
-	result, err := blt.Limit(ctx, "7")
+	_, err = blt.Limit(ctx, "7")
+	require.Equal(t, ErrUnexpectedRedisResponse, err)
+
+	i = []interface{}{int64(1), int64(2), int64(100), 42}
+	clientMock.On("EvalSha", ctx, hash, []string{"x:8", "y:8"}, rate, size, limit, algFixed, rate, size, limit, algFixed).Return(redis.NewCmdResult(i, nil))
+	_, err = blt.Limit(ctx, "8")
+	require.Equal(t, ErrUnexpectedRedisResponse, err)
+
+	i = []interface{}{int64(1), int64(2), int64(100), limit}
+	clientMock.On("EvalSha", ctx, hash, []string{"x:9", "y:9"}, rate, size, limit, algFixed, rate, size, limit, algFixed).Return(redis.NewCmdResult(i, nil))
+	result, err := blt.Limit(ctx, "9")
 	require.NoError(t, err)
 	require.True(t, result.OK())
-	require.Equal(t, int64(1), result.Counter())
-	require.Equal(t, limit-1, result.Remainder())
-	require.Equal(t, msToDuration(-1), result.TTL())
+	require.Equal(t, int64(2), result.Counter())
+	require.Equal(t, limit-2, result.Remainder())
+	require.Equal(t, msToDuration(100), result.TTL())
 
 	clientMock.AssertExpectations(t)
 }

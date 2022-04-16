@@ -35,14 +35,14 @@ func TestSlidingWindow(t *testing.T) {
 	require.True(t, result.OK())
 	require.Equal(t, int64(20), result.Counter())
 	require.Equal(t, int64(80), result.Remainder())
-	require.Equal(t, msToDuration(-1), result.TTL())
+	require.True(t, result.TTL() >= msToDuration(0) && result.TTL() <= size)
 
 	result, err = counter.Count(ctx, key, 30)
 	require.NoError(t, err)
 	require.True(t, result.OK())
 	require.Equal(t, int64(50), result.Counter())
 	require.Equal(t, int64(50), result.Remainder())
-	require.Equal(t, msToDuration(-1), result.TTL())
+	require.True(t, result.TTL() >= msToDuration(0) && result.TTL() <= size)
 
 	result, err = counter.Count(ctx, key, 51)
 	require.NoError(t, err)
@@ -67,5 +67,5 @@ func TestSlidingWindow(t *testing.T) {
 	require.True(t, result.OK())
 	require.True(t, result.Counter() > 70 && result.Counter() <= 100)
 	require.True(t, result.Remainder() >= 0 && result.Remainder() <= 30)
-	require.Equal(t, msToDuration(-1), result.TTL())
+	require.True(t, result.TTL() >= msToDuration(0) && result.TTL() <= size)
 }

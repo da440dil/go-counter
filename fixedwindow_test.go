@@ -33,21 +33,21 @@ func TestFixedWindow(t *testing.T) {
 	require.True(t, result.OK())
 	require.Equal(t, int64(20), result.Counter())
 	require.Equal(t, int64(80), result.Remainder())
-	require.Equal(t, msToDuration(-1), result.TTL())
+	require.Equal(t, size, result.TTL())
 
 	result, err = counter.Count(ctx, key, 30)
 	require.NoError(t, err)
 	require.True(t, result.OK())
 	require.Equal(t, int64(50), result.Counter())
 	require.Equal(t, int64(50), result.Remainder())
-	require.Equal(t, msToDuration(-1), result.TTL())
+	require.True(t, result.TTL() > msToDuration(0) && result.TTL() <= size)
 
 	result, err = counter.Count(ctx, key, 51)
 	require.NoError(t, err)
 	require.False(t, result.OK())
 	require.Equal(t, int64(50), result.Counter())
 	require.Equal(t, int64(50), result.Remainder())
-	require.True(t, result.TTL() >= msToDuration(0) && result.TTL() <= size)
+	require.True(t, result.TTL() > msToDuration(0) && result.TTL() <= size)
 
 	time.Sleep(result.TTL() + 100*time.Millisecond) // wait for the next window to start
 
@@ -56,5 +56,5 @@ func TestFixedWindow(t *testing.T) {
 	require.True(t, result.OK())
 	require.Equal(t, int64(70), result.Counter())
 	require.Equal(t, int64(30), result.Remainder())
-	require.Equal(t, msToDuration(-1), result.TTL())
+	require.True(t, result.TTL() > msToDuration(0) && result.TTL() <= size)
 }

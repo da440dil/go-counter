@@ -39,12 +39,12 @@ func main() {
 	time.Sleep(700 * time.Millisecond) // wait for the most time of the current window to pass
 	count(70)
 	// Output:
-	// Value: 101, result: { ok: false, counter: 0, remainder: 100, ttl: 473ms }
-	// Value: 20, result: { ok: true, counter: 20, remainder: 80, ttl: -1ms }
-	// Value: 30, result: { ok: true, counter: 50, remainder: 50, ttl: -1ms }
-	// Value: 51, result: { ok: false, counter: 50, remainder: 50, ttl: 980ms }
-	// Value: 70, result: { ok: false, counter: 48, remainder: 52, ttl: 978ms }
-	// Value: 70, result: { ok: true, counter: 83, remainder: 17, ttl: -1ms }
+	// Value: 101, result: { ok: false, counter: 0, remainder: 100, ttl: 101ms }
+	// Value: 20, result: { ok: true, counter: 20, remainder: 80, ttl: 997ms }
+	// Value: 30, result: { ok: true, counter: 50, remainder: 50, ttl: 995ms }
+	// Value: 51, result: { ok: false, counter: 50, remainder: 50, ttl: 993ms }
+	// Value: 70, result: { ok: false, counter: 49, remainder: 51, ttl: 987ms }
+	// Value: 70, result: { ok: true, counter: 83, remainder: 17, ttl: 264ms }
 }
 
 func requireNoError(err error) {

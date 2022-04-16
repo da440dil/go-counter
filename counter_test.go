@@ -52,29 +52,34 @@ func TestCounter(t *testing.T) {
 	_, err = c.Count(ctx, "2", value)
 	require.Equal(t, ErrUnexpectedRedisResponse, err)
 
-	i = []interface{}{1}
+	i = []interface{}{1, 2}
 	clientMock.On("EvalSha", ctx, hash, []string{"3"}, value, size, limit).Return(redis.NewCmdResult(i, nil))
 	_, err = c.Count(ctx, "3", value)
 	require.Equal(t, ErrUnexpectedRedisResponse, err)
 
-	i = []interface{}{1, -1}
+	i = []interface{}{1, 2, 100}
 	clientMock.On("EvalSha", ctx, hash, []string{"4"}, value, size, limit).Return(redis.NewCmdResult(i, nil))
 	_, err = c.Count(ctx, "4", value)
 	require.Equal(t, ErrUnexpectedRedisResponse, err)
 
-	i = []interface{}{int64(1), -1}
+	i = []interface{}{int64(1), 2, 100}
 	clientMock.On("EvalSha", ctx, hash, []string{"5"}, value, size, limit).Return(redis.NewCmdResult(i, nil))
 	_, err = c.Count(ctx, "5", value)
 	require.Equal(t, ErrUnexpectedRedisResponse, err)
 
-	i = []interface{}{int64(1), int64(-1)}
+	i = []interface{}{int64(1), int64(2), 100}
 	clientMock.On("EvalSha", ctx, hash, []string{"6"}, value, size, limit).Return(redis.NewCmdResult(i, nil))
-	result, err := c.Count(ctx, "6", value)
+	_, err = c.Count(ctx, "6", value)
+	require.Equal(t, ErrUnexpectedRedisResponse, err)
+
+	i = []interface{}{int64(1), int64(2), int64(100)}
+	clientMock.On("EvalSha", ctx, hash, []string{"7"}, value, size, limit).Return(redis.NewCmdResult(i, nil))
+	result, err := c.Count(ctx, "7", value)
 	require.NoError(t, err)
 	require.True(t, result.OK())
-	require.Equal(t, int64(1), result.Counter())
-	require.Equal(t, limit-1, result.Remainder())
-	require.Equal(t, msToDuration(-1), result.TTL())
+	require.Equal(t, int64(2), result.Counter())
+	require.Equal(t, limit-2, result.Remainder())
+	require.Equal(t, msToDuration(100), result.TTL())
 
 	clientMock.AssertExpectations(t)
 }

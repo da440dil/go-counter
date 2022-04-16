@@ -62,12 +62,12 @@ func main() {
 	time.Sleep(time.Second) // wait for the next window to start
 	limitN(2)
 	// Output:
-	// Result: { ok: true, counter: 1, remainder: 2, ttl: -1ms }
-	// Result: { ok: true, counter: 2, remainder: 1, ttl: -1ms }
-	// Result: { ok: true, counter: 3, remainder: 0, ttl: -1ms }
-	// Result: { ok: false, counter: 3, remainder: 0, ttl: 999ms }
-	// Result: { ok: true, counter: 5, remainder: 0, ttl: -1ms }
-	// Result: { ok: false, counter: 5, remainder: 0, ttl: 989ms }
+	// Result: { ok: true, counter: 1, remainder: 2, ttl: 1s }
+	// Result: { ok: true, counter: 3, remainder: 0, ttl: 998ms }
+	// Result: { ok: true, counter: 2, remainder: 1, ttl: 998ms }
+	// Result: { ok: false, counter: 3, remainder: 0, ttl: 998ms }
+	// Result: { ok: true, counter: 5, remainder: 0, ttl: 993ms }
+	// Result: { ok: false, counter: 5, remainder: 0, ttl: 993ms }
 }
 
 func requireNoError(err error) {
